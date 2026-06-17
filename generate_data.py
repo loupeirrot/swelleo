@@ -26,28 +26,38 @@ FORECAST_DAYS = 5  # même fenêtre que les alertes Telegram
 # ──────────────────────────────────────────
 # FETCH (5 jours, contrairement à surf_alert qui en demande 3)
 # ──────────────────────────────────────────
+def _get_json(url, params, label="API"):
+    """GET robuste : timeout 30s + 3 tentatives (l'API Open-Meteo expire parfois en CI)."""
+    last_err = None
+    for attempt in range(3):
+        try:
+            r = requests.get(url, params=params, timeout=30)
+            r.raise_for_status()
+            return r.json()
+        except Exception as e:
+            last_err = e
+            print(f"  ⏳ {label} : tentative {attempt + 1}/3 ({e})")
+    raise last_err
+
+
 def fetch_marine(lat, lon):
-    r = requests.get("https://marine-api.open-meteo.com/v1/marine", params={
+    return _get_json("https://marine-api.open-meteo.com/v1/marine", {
         "latitude": lat, "longitude": lon,
         "hourly": "wave_height,wave_period,wave_direction,"
                   "swell_wave_height,swell_wave_period,swell_wave_direction",
         "timezone": "Europe/Paris",
         "forecast_days": FORECAST_DAYS,
-    }, timeout=15)
-    r.raise_for_status()
-    return r.json()
+    }, label="marine")
 
 
 def fetch_weather(lat, lon):
-    r = requests.get("https://api.open-meteo.com/v1/forecast", params={
+    return _get_json("https://api.open-meteo.com/v1/forecast", {
         "latitude": lat, "longitude": lon,
         "hourly": "wind_speed_10m,wind_direction_10m,weather_code,cloud_cover",
         "timezone": "Europe/Paris",
         "forecast_days": FORECAST_DAYS,
         "wind_speed_unit": "kmh",
-    }, timeout=15)
-    r.raise_for_status()
-    return r.json()
+    }, label="weather")
 
 
 # ──────────────────────────────────────────

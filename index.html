@@ -220,7 +220,9 @@ function setResume(data) {
   const el = document.getElementById('resume'); if (!el) return;
   const now = currentEntry(data), up = bestUpcoming(data);
   const dateStr = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
-  let txt = `<b>${dateStr}</b> · `;
+  let txt = '';
+  if (now) { const v = verdict(now.score); txt += `${v.emoji} <b>${v.label}</b> maintenant · `; }
+  txt += `<b>${dateStr}</b> · `;
   if (now) txt += `${sizeWord(now.wave_h)} (~${now.wave_h}m, ${now.wind_spd}km/h ${now.offshore ? 'offshore ✅' : 'onshore ⚠️'}).`;
   if (up) {
     const when = whenLabel(up.h.time, data.jours_fr), hr = new Date(up.h.time).getHours();
@@ -254,11 +256,16 @@ function findWindows(hours, th) {
 }
 function bestHour(hours) { const d = hours.filter(h => h.daytime);
   return d.length ? d.reduce((a,b) => b.score > a.score ? b : a) : null; }
+// Verdict go/no-go — l'arme n°1. Seuils : GO ≥6.5 · BOF 4.5–6.5 · NON <4.5
+function verdict(s) {
+  if (s >= 6.5) return { label: 'GO',  emoji: '🟢', color: '#34e89e' };
+  if (s >= 4.5) return { label: 'BOF', emoji: '🟠', color: '#ffb454' };
+  return { label: 'NON', emoji: '🔴', color: '#ff6b6b' };
+}
 function tagText(score, priority) {
-  if (score >= PRO && priority === 'fire') return '🔥 ça envoie';
-  if (score >= GO) return '🤙 à l\'eau';
-  if (score >= 6)  return '🆗 surfable';
-  return '🌊 petit';
+  const v = verdict(score);
+  if (score >= PRO && priority === 'fire') return v.emoji + ' GO · ça envoie 🔥';
+  return v.emoji + ' ' + v.label;
 }
 function condLine(p) {
   return `🌊 ${p.wave_h}m ${p.wave_p}s ${p.swell_label} · 💨 ${p.wind_spd}km/h ${p.wind_label} ${p.offshore ? '✅ offshore' : '⚠️ onshore'}`;
@@ -294,10 +301,10 @@ function range(win) {
   return sH === eH ? `${sH}h` : `${sH}h → ${eH}h`;
 }
 function heroCard(spot, win, joursFr) {
-  const p = win.peak, c = solid(p.score), g = grad(p.score);
+  const p = win.peak, c = solid(p.score), g = grad(p.score), v = verdict(p.score);
   const tide = tideLine(p.time, TIDES);
   return `<div class="card hero" style="--hero-glow:${c}">
-    <span class="htag" style="background:${c}30;color:${c};border:1px solid ${c}66">${tagText(p.score, spot.priority)}</span>
+    <span class="htag" style="background:${v.color}30;color:${v.color};border:1px solid ${v.color}66">${tagText(p.score, spot.priority)}</span>
     <div class="hscore"><span class="n" style="background-image:${g}">${p.score}</span><span class="o">/10</span></div>
     <div class="hwhere">${spot.name}</div>
     <div class="hwhen">${whenRange(win, joursFr)}</div>

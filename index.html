@@ -28,7 +28,7 @@
   .banner { position: relative; width: 100%; height: 240px; z-index: 1; overflow: hidden; }
   .banner img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .banner .fade { position: absolute; inset: 0;
-    background: linear-gradient(to bottom, rgba(11,37,69,0.15) 0%, rgba(11,37,69,0.30) 50%, var(--bg-top) 100%); }
+    background: linear-gradient(to bottom, transparent 0%, transparent 42%, var(--bg-top) 100%); }
   .banner .title { position: absolute; left: 0; right: 0; bottom: 16px; text-align: center; z-index: 2; padding: 0 16px; }
   .banner h1 { font-family: var(--head); font-size: 2.3rem; font-weight: 700; letter-spacing: 0.5px;
     text-shadow: 0 2px 18px rgba(0,0,0,0.45); }
@@ -174,17 +174,32 @@ function currentEntry(data) {
   return best;
 }
 function pickBanner(h) {
-  if (!h) return 'wave-golden';
-  if (!h.daytime) return 'wave-night';                       // nuit / avant l'aube
-  if (!h.offshore && h.score < 5) return 'wave-messy';        // onshore et médiocre
-  if (h.light >= 9 && h.score >= 6) return 'wave-golden';     // golden hour + ça marche
-  if (h.score >= 8) return 'wave-epic';                       // gros et puissant
-  if (h.score >= 6) return 'wave-clean';                      // propre et surfable
-  return 'wave-flat';                                         // petit / plat
+  if (!h) return 'golden';
+  if (!h.daytime) return 'night';                       // nuit / avant l'aube
+  if (!h.offshore && h.score < 5) return 'messy';       // onshore et médiocre
+  if (h.light >= 9 && h.score >= 6) return 'golden';    // golden hour + ça marche
+  if (h.score >= 8) return 'epic';                      // gros et puissant
+  if (h.score >= 6) return 'clean';                     // propre et surfable
+  return 'flat';                                        // petit / plat
 }
+// Une palette par ambiance — toutes dans la même famille de tons océan.
+// top = couleur du haut (sert aussi au fondu du bandeau) ; blobs = les 3 taches floutées.
+const PALETTES = {
+  flat:   { top: '#0e2e52', bg: 'linear-gradient(165deg,#0e2e52 0%,#1b5080 34%,#2a90a0 68%,#6cc3cf 100%)', blobs: ['#4cc9f0','#7ad0e0','#3fb6c4'] },
+  clean:  { top: '#0b2d50', bg: 'linear-gradient(165deg,#0b2d50 0%,#115a86 34%,#0f8fa3 68%,#22bccb 100%)', blobs: ['#2ec4b6','#1fb6c4','#4cc9f0'] },
+  epic:   { top: '#06152b', bg: 'linear-gradient(165deg,#06152b 0%,#0c2c52 34%,#0a3d54 68%,#066b7a 100%)', blobs: ['#0a6b7a','#13558a','#1d9e75'] },
+  golden: { top: '#0c2546', bg: 'linear-gradient(165deg,#0c2546 0%,#1a3a63 32%,#3a5f7e 62%,#b98a5c 100%)', blobs: ['#2ec4b6','#e0a96d','#4cc9f0'] },
+  messy:  { top: '#172430', bg: 'linear-gradient(165deg,#172430 0%,#28414f 34%,#33565c 68%,#4a7077 100%)', blobs: ['#3a5560','#4a7077','#5a7a72'] },
+  night:  { top: '#070b1f', bg: 'linear-gradient(165deg,#070b1f 0%,#0d1738 34%,#0a2440 68%,#0a3550 100%)', blobs: ['#13315c','#1a2a5a','#0a3d54'] },
+};
 function setBanner(data) {
+  const mood = pickBanner(currentEntry(data));
   const img = document.getElementById('banner-img');
-  if (img) img.src = 'assets/' + pickBanner(currentEntry(data)) + '.webp';
+  if (img) img.src = 'assets/wave-' + mood + '.webp';
+  const p = PALETTES[mood]; if (!p) return;
+  document.body.style.backgroundImage = p.bg;                 // garde background-attachment: fixed
+  document.documentElement.style.setProperty('--bg-top', p.top);
+  document.querySelectorAll('.blob').forEach((el, i) => { if (p.blobs[i]) el.style.background = p.blobs[i]; });
 }
 function whenLabel(dateStr, joursFr) {
   const d = new Date(dateStr), today = new Date(); today.setHours(0,0,0,0);

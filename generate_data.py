@@ -159,7 +159,22 @@ def compute_extremes(times, h):
     return extremes
 
 
-def fetch_tides_by_region():
+LIVE_DATA_URL = "https://loupeirrot.github.io/surfalert/data.json"
+
+
+def load_previous():
+    """Récupère le data.json déjà en ligne — filet pour réutiliser la dernière
+    donnée connue si un spot ou une région échoue ce run."""
+    try:
+        r = requests.get(LIVE_DATA_URL, timeout=20)
+        r.raise_for_status()
+        return r.json()
+    except Exception as e:
+        print(f"  ⏳ data.json précédent indisponible ({e})")
+        return {}
+
+
+def fetch_tides_by_region(prev_tides=None):
     """Une série de marées par région, au barycentre des spots de la région."""
     regions = {}
     for cfg in SPOTS.values():
@@ -172,12 +187,21 @@ def fetch_tides_by_region():
             times, h = fetch_sea_level(lat, lon)
             tides[region] = compute_extremes(times, h)
         except Exception as e:
-            print(f"  ❌ marées {region} indisponibles : {e}")
+            if prev_tides and region in prev_tides:
+                tides[region] = prev_tides[region]
+                print(f"  ↩︎ marées {region} : dernière donnée connue réutilisée")
+            else:
+                print(f"  ❌ marées {region} indisponibles : {e}")
     return tides
 
 
 def main():
     print(f"[{datetime.now(TZ).strftime('%H:%M')}] Génération des données dashboard...")
+    prev = load_previous()
+    prev_spots = {s["name"]: s for s in prev.get("spots", [])}
+    prev_tides = prev.get("tides", {})
+    if not isinstance(prev_tides, dict):
+        prev_tides = {}
     spots_data = []
 
     for spot_name, spot_cfg in SPOTS.items():
@@ -194,10 +218,14 @@ def main():
                 "hours": hours,
             })
         except Exception as e:
-            print(f"  ❌ Erreur sur {spot_name}: {e}")
+            if spot_name in prev_spots:
+                spots_data.append(prev_spots[spot_name])
+                print(f"  ↩︎ {spot_name} : dernière donnée connue réutilisée ({e})")
+            else:
+                print(f"  ❌ Erreur sur {spot_name}: {e}")
 
     try:
-        tides = fetch_tides_by_region()
+        tides = fetch_tides_by_region(prev_tides)
         total = sum(len(v) for v in tides.values())
         print(f"  → marées : {total} extrema sur {len(tides)} régions")
     except Exception as e:

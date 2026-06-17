@@ -123,7 +123,7 @@
   <img id="banner-img" src="assets/wave-golden.webp" alt="Conditions de surf sur la côte landaise">
   <div class="fade"></div>
   <div class="title">
-    <h1>🌊 SurfAlert</h1>
+    <h1>SurfAlert</h1>
     <div class="subtitle">les meilleures sessions — côte landaise</div>
   </div>
 </div>
@@ -149,7 +149,7 @@
 
 <script>
 const GO = 7.5, PRO = 8.5;
-let DATA = null, threshold = 7.5;
+let DATA = null, TIDES = [], threshold = 7.5;
 
 function grad(s) {
   if (s >= PRO) return 'linear-gradient(135deg,#ffb86c,#ff8a4c)';
@@ -218,15 +218,17 @@ function bestUpcoming(data) {
 }
 function setResume(data) {
   const el = document.getElementById('resume'); if (!el) return;
-  const now = currentEntry(data), up = bestUpcoming(data); let txt = '';
-  if (now) txt += `<b>maintenant</b> · ${sizeWord(now.wave_h)} (~${now.wave_h}m, ${now.wind_spd}km/h ${now.offshore ? 'offshore ✅' : 'onshore ⚠️'}).`;
+  const now = currentEntry(data), up = bestUpcoming(data);
+  const dateStr = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+  let txt = `<b>${dateStr}</b> · `;
+  if (now) txt += `${sizeWord(now.wave_h)} (~${now.wave_h}m, ${now.wind_spd}km/h ${now.offshore ? 'offshore ✅' : 'onshore ⚠️'}).`;
   if (up) {
     const when = whenLabel(up.h.time, data.jours_fr), hr = new Date(up.h.time).getHours();
     txt += up.h.score >= GO
       ? ` <b>meilleure fenêtre</b> : ${when} ~${hr}h à ${up.spot.name} (${up.h.score}/10).`
       : ` rien de marquant ces prochains jours — au mieux ${when} ~${hr}h à ${up.spot.name} (${up.h.score}/10).`;
   }
-  el.innerHTML = '🌊 ' + txt;
+  el.innerHTML = txt;
   el.style.display = 'block';
 }
 function whenLabel(dateStr, joursFr) {
@@ -261,11 +263,31 @@ function tagText(score, priority) {
 function condLine(p) {
   return `🌊 ${p.wave_h}m ${p.wave_p}s ${p.swell_label} · 💨 ${p.wind_spd}km/h ${p.wind_label} ${p.offshore ? '✅ offshore' : '⚠️ onshore'}`;
 }
-// Indicateur météo / shoot (pour Pierre vidéaste) — séparé de la note de surf.
+// Indicateur météo / lumière — séparé de la note de surf.
 function shootLine(p) {
   const ciel = p.cloud < 30 ? 'ciel dégagé' : (p.cloud < 70 ? 'ciel voilé' : 'ciel couvert');
   const golden = p.light >= 9 ? '☀️ golden hour · ' : '';
-  return `🎥 shoot : ${golden}${ciel} (${p.cloud}% nuages)`;
+  return `${golden}${ciel} · ${p.cloud}% nuages`;
+}
+// Marée encadrant la session : extremum juste avant → juste après le pic.
+function tideLine(timeStr, tides) {
+  if (!tides || !tides.length) return '';
+  const t = new Date(timeStr).getTime();
+  let before = null, after = null;
+  for (const e of tides) {
+    const et = new Date(e.time).getTime();
+    if (et <= t) before = e;
+    else if (!after) after = e;
+  }
+  const fmt = e => `${e.type === 'haute' ? 'haute' : 'basse'} ${new Date(e.time).getHours()}h${String(new Date(e.time).getMinutes()).padStart(2, '0')}`;
+  const parts = [before, after].filter(Boolean).map(fmt);
+  return parts.length ? '🌊 marée : ' + parts.join(' → ') : '';
+}
+// Quand : "demain à 9h" (créneau d'1h) ou "demain · 9h–11h" (fenêtre).
+function whenRange(win, joursFr) {
+  const when = whenLabel(win.start, joursFr);
+  const sH = new Date(win.start).getHours(), eH = new Date(win.end).getHours();
+  return sH === eH ? `<b>${when}</b> à ${sH}h` : `<b>${when}</b> · ${sH}h–${eH}h`;
 }
 function range(win) {
   const sH = new Date(win.start).getHours(), eH = new Date(win.end).getHours();
@@ -273,25 +295,29 @@ function range(win) {
 }
 function heroCard(spot, win, joursFr) {
   const p = win.peak, c = solid(p.score), g = grad(p.score);
+  const tide = tideLine(p.time, TIDES);
   return `<div class="card hero" style="--hero-glow:${c}">
     <span class="htag" style="background:${c}30;color:${c};border:1px solid ${c}66">${tagText(p.score, spot.priority)}</span>
     <div class="hscore"><span class="n" style="background-image:${g}">${p.score}</span><span class="o">/10</span></div>
     <div class="hwhere">${spot.name}</div>
-    <div class="hwhen"><b>${whenLabel(win.start, joursFr)}</b> · ${range(win)} <span class="pic">(pic ${new Date(p.time).getHours()}h)</span></div>
+    <div class="hwhen">${whenRange(win, joursFr)}</div>
     <div class="hcond">${condLine(p)}</div>
+    ${tide ? `<div class="hcond" style="margin-top:6px">${tide}</div>` : ''}
     <div class="hcond" style="margin-top:6px;opacity:0.85">${shootLine(p)}</div>
   </div>`;
 }
 function sessionCard(spot, win, joursFr) {
   const p = win.peak;
+  const tide = tideLine(p.time, TIDES);
   return `<div class="card session">
     <div class="score-box" style="background:${grad(p.score)}"><span class="n">${p.score}</span></div>
     <div class="info">
       <span class="tag">${tagText(p.score, spot.priority)}</span>
       <div class="where">${spot.name}</div>
-      <div class="when"><b>${whenLabel(win.start, joursFr)}</b> · ${range(win)} <span class="pic">(pic ${new Date(p.time).getHours()}h)</span></div>
+      <div class="when">${whenRange(win, joursFr)}</div>
       <div class="cond">${condLine(p)}</div>
-      <div class="cond" style="margin-top:2px">${shootLine(p)}</div>
+      ${tide ? `<div class="cond" style="margin-top:2px">${tide}</div>` : ''}
+      <div class="cond" style="margin-top:2px;opacity:0.85">${shootLine(p)}</div>
     </div></div>`;
 }
 function renderSummary() {
@@ -349,6 +375,7 @@ function renderDetail() {
 function rerender() { renderSummary(); renderDetail(); }
 function init(data) {
   DATA = data;
+  TIDES = data.tides || [];
   setBanner(data);
   setResume(data);
   const upd = new Date(data.generated_at);

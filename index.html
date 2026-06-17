@@ -3,320 +3,294 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🌊 SurfAlert — Côte Landaise</title>
+<title>🌊 SurfAlert</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Nunito+Sans:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0a1929;
-    --bg-card: #102a43;
-    --bg-cell: #1c3a5e;
-    --text: #e8f1f8;
-    --text-dim: #7a98b8;
-    --fire: #ff3b30;
-    --c-red: #44617f;
-    --c-low: #4a7c8c;
-    --c-mid: #d9a441;
-    --c-good: #2ec16a;
-    --c-fire: #ff6b35;
+    --go: #4fe0c0; --pro: #ff9a5c; --mid: #ffce6a; --low: #7fb4e6; --red: #9a93b8;
+    --bg-top: #0b2545; --card: rgba(255,255,255,0.10); --stroke: rgba(255,255,255,0.20);
+    --text: #f3f8fc; --dim: rgba(220,235,248,0.64);
+    --head: 'Quicksand', sans-serif; --body: 'Nunito Sans', sans-serif;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    line-height: 1.5;
-    padding: 16px;
-    max-width: 900px;
-    margin: 0 auto;
+    font-family: var(--body); color: var(--text); line-height: 1.55; min-height: 100vh;
+    background: linear-gradient(165deg, #0b2545 0%, #13315c 34%, #0a4d68 68%, #088395 100%);
+    background-attachment: fixed; position: relative; overflow-x: hidden;
   }
-  header { text-align: center; margin-bottom: 6px; }
-  h1 { font-size: 1.6rem; letter-spacing: -0.5px; }
-  .subtitle { color: var(--text-dim); font-size: 0.85rem; }
-  .updated { color: var(--text-dim); font-size: 0.78rem; margin-top: 4px; }
+  .blob { position: fixed; border-radius: 50%; filter: blur(72px); z-index: 0; pointer-events: none; }
+  .blob.a { width: 320px; height: 320px; background: #2ec4b6; opacity: 0.30; top: 120px; right: -60px; }
+  .blob.b { width: 300px; height: 300px; background: #4cc9f0; opacity: 0.26; top: 46%; left: -100px; }
+  .blob.c { width: 260px; height: 260px; background: #1d9e75; opacity: 0.24; top: 66%; right: -80px; }
 
-  /* ---- Filtre ---- */
-  .filters { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 18px 0 8px; }
+  .banner { position: relative; width: 100%; height: 240px; z-index: 1; overflow: hidden; }
+  .banner img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .banner .fade { position: absolute; inset: 0;
+    background: linear-gradient(to bottom, rgba(11,37,69,0.15) 0%, rgba(11,37,69,0.30) 50%, var(--bg-top) 100%); }
+  .banner .title { position: absolute; left: 0; right: 0; bottom: 16px; text-align: center; z-index: 2; padding: 0 16px; }
+  .banner h1 { font-family: var(--head); font-size: 2.3rem; font-weight: 700; letter-spacing: 0.5px;
+    text-shadow: 0 2px 18px rgba(0,0,0,0.45); }
+  .banner .subtitle { color: rgba(255,255,255,0.85); font-size: 0.95rem; text-shadow: 0 1px 10px rgba(0,0,0,0.5); }
+
+  .wrap { position: relative; z-index: 1; max-width: 640px; margin: 0 auto; padding: 18px 18px 48px; }
+  .updated { text-align: center; color: var(--dim); font-size: 0.74rem; margin-bottom: 20px; }
+
+  .filters { display: flex; flex-wrap: wrap; gap: 9px; justify-content: center; margin-bottom: 26px; }
   .filters button {
-    background: var(--bg-card); color: var(--text-dim);
-    border: 1px solid transparent; border-radius: 20px;
-    padding: 7px 13px; font-size: 0.8rem; cursor: pointer; transition: all .15s;
-    font-weight: 600;
+    background: var(--card); border: 1px solid var(--stroke); color: var(--dim);
+    border-radius: 30px; padding: 9px 17px; font-family: var(--head); font-size: 0.84rem;
+    font-weight: 500; cursor: pointer; transition: all .25s;
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
   }
   .filters button:hover { color: var(--text); }
-  .filters button.active { background: var(--c-good); color: #04210f; border-color: var(--c-good); }
+  .filters button.active { background: linear-gradient(135deg, var(--go), #2bb4d8); color: #06281f;
+    border-color: transparent; font-weight: 700; box-shadow: 0 6px 20px rgba(79,224,192,0.4); }
 
-  .section-title { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 1px;
-    color: var(--text-dim); margin: 22px 0 10px; }
+  .card { background: var(--card); backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%); border: 1px solid var(--stroke);
+    border-radius: 26px; box-shadow: 0 14px 40px rgba(4,12,28,0.36), inset 0 1px 0 rgba(255,255,255,0.20); }
 
-  /* ---- Cartes session (résumé) ---- */
-  .session {
-    display: flex; align-items: stretch; gap: 12px;
-    background: var(--bg-card); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px;
-    box-shadow: 0 3px 12px rgba(0,0,0,0.2);
-  }
-  .session .score-box {
-    flex-shrink: 0; width: 58px; border-radius: 10px;
+  .label { font-family: var(--head); font-size: 0.72rem; text-transform: uppercase;
+    letter-spacing: 2px; color: var(--dim); margin: 4px 6px 14px; font-weight: 600; }
+
+  .hero { padding: 26px 24px; margin-bottom: 24px; position: relative; overflow: hidden; }
+  .hero::after { content: ""; position: absolute; top: -45%; right: -20%; width: 300px; height: 300px;
+    border-radius: 50%; filter: blur(55px); opacity: 0.50; background: var(--hero-glow, #4fe0c0); }
+  .hero .htag { position: relative; font-family: var(--head); font-size: 0.78rem; font-weight: 700;
+    letter-spacing: 0.5px; padding: 5px 13px; border-radius: 30px; display: inline-block; }
+  .hero .hscore { position: relative; display: flex; align-items: baseline; gap: 10px; margin: 16px 0 4px; }
+  .hero .hscore .n { font-family: var(--head); font-size: 4.2rem; font-weight: 700; line-height: 0.85;
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .hero .hscore .o { font-size: 1rem; color: var(--dim); }
+  .hero .hwhere { position: relative; font-family: var(--head); font-size: 1.5rem; font-weight: 600; }
+  .hero .hwhen { position: relative; font-size: 1rem; margin-top: 2px; }
+  .hero .hcond { position: relative; color: var(--dim); font-size: 0.9rem; margin-top: 13px; }
+
+  .session { display: flex; align-items: center; gap: 16px; padding: 15px 18px; margin-bottom: 13px; }
+  .score-box { flex-shrink: 0; width: 58px; height: 58px; border-radius: 50%;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    color: #04210f; font-weight: 800;
-  }
-  .session .score-box .n { font-size: 1.35rem; line-height: 1; }
-  .session .score-box .o { font-size: 0.55rem; opacity: 0.75; }
-  .session .info { flex: 1; min-width: 0; }
-  .session .where { font-size: 1.05rem; font-weight: 700; }
-  .session .when { font-size: 0.9rem; color: var(--text); margin-top: 1px; }
-  .session .when b { color: #fff; }
-  .session .cond { font-size: 0.8rem; color: var(--text-dim); margin-top: 4px; }
-  .session .tag { font-size: 0.62rem; font-weight: 800; letter-spacing: 0.5px;
-    padding: 2px 7px; border-radius: 20px; display: inline-block; margin-bottom: 3px; }
-  .tag.pro { background: var(--c-fire); color: #2b0d00; }
-  .tag.go  { background: var(--c-good); color: #04210f; }
-  .tag.ok  { background: var(--c-mid); color: #2b1d00; }
+    font-family: var(--head); color: #0a2018; font-weight: 700;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.4), 0 4px 14px rgba(0,0,0,0.2); }
+  .score-box .n { font-size: 1.45rem; line-height: 1; }
+  .info { flex: 1; min-width: 0; }
+  .tag { font-family: var(--head); font-size: 0.66rem; font-weight: 700; letter-spacing: 0.5px;
+    color: var(--dim); margin-bottom: 2px; display: block; }
+  .where { font-family: var(--head); font-size: 1.12rem; font-weight: 600; }
+  .when { font-size: 0.9rem; } .when .pic { color: var(--dim); }
+  .cond { font-size: 0.8rem; color: var(--dim); margin-top: 3px; }
 
-  .empty { background: var(--bg-card); border-radius: 12px; padding: 18px;
-    text-align: center; color: var(--text-dim); font-size: 0.9rem; }
+  .empty { padding: 22px; text-align: center; color: var(--dim); font-size: 0.92rem; margin-bottom: 16px; }
 
-  /* ---- Détail repliable ---- */
-  .toggle {
-    width: 100%; background: var(--bg-card); color: var(--text);
-    border: none; border-radius: 12px; padding: 13px; font-size: 0.9rem; font-weight: 600;
-    cursor: pointer; margin-top: 14px; display: flex; justify-content: center; gap: 8px;
-  }
-  #detail { margin-top: 10px; }
-  #detail.hidden { display: none; }
+  .toggle { width: 100%; margin-top: 18px; padding: 15px; font-family: var(--head); font-size: 0.9rem;
+    font-weight: 600; cursor: pointer; color: var(--text); background: var(--card);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    border: 1px solid var(--stroke); border-radius: 22px; }
+  #detail { margin-top: 14px; } #detail.hidden { display: none; }
 
-  .spot { background: var(--bg-card); border-radius: 14px; padding: 14px; margin-bottom: 14px; }
+  .spot { padding: 18px; margin-bottom: 15px; }
   .spot-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
-  .spot-name { font-size: 1.05rem; font-weight: 600; }
-  .badge-fire { font-size: 0.6rem; font-weight: 700; background: var(--fire); color: #fff;
-    padding: 2px 7px; border-radius: 20px; }
-
-  .day { margin-top: 10px; }
-  .day-label { font-size: 0.72rem; color: var(--text-dim); margin-bottom: 4px; text-transform: capitalize; }
-  .timeline { display: flex; gap: 2px; }
-  .cell {
-    flex: 1; min-width: 0; height: 36px; border-radius: 4px;
+  .spot-name { font-family: var(--head); font-size: 1.1rem; font-weight: 600; }
+  .badge-fire { font-family: var(--head); font-size: 0.6rem; font-weight: 700; letter-spacing: 0.5px;
+    background: linear-gradient(135deg,#ff7b9c,#ff9a5c); color: #3a0f1a; padding: 3px 10px; border-radius: 30px; }
+  .day { margin-top: 13px; }
+  .day-label { font-family: var(--head); font-size: 0.72rem; color: var(--dim); margin-bottom: 6px;
+    text-transform: capitalize; font-weight: 600; }
+  .timeline { display: flex; gap: 4px; }
+  .cell { flex: 1; min-width: 0; height: 44px; border-radius: 13px;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    font-size: 0.6rem; color: rgba(255,255,255,0.9); position: relative; transition: opacity .15s;
-  }
-  .cell .h { font-size: 0.52rem; opacity: 0.7; }
-  .cell .sc { font-weight: 700; font-size: 0.7rem; }
-  .cell.dim { opacity: 0.18; }
-  .cell.night { opacity: 0.18; }
-  .cell:hover::after {
-    content: attr(data-tip);
-    position: absolute; bottom: 110%; left: 50%; transform: translateX(-50%);
-    background: #000; color: #fff; padding: 6px 9px; border-radius: 6px;
-    font-size: 0.7rem; white-space: pre; z-index: 10; pointer-events: none;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.5);
-  }
-  .legend { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;
-    margin: 10px 0; font-size: 0.68rem; color: var(--text-dim); }
-  .legend span { display: flex; align-items: center; gap: 4px; }
-  .dot { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
-  footer { text-align: center; color: var(--text-dim); font-size: 0.72rem; margin-top: 24px; }
-  .error { background: #5a1a1a; padding: 16px; border-radius: 10px; text-align: center; }
+    font-size: 0.6rem; color: rgba(12,28,22,0.88); position: relative; transition: all .2s;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.25); }
+  .cell .h { font-size: 0.52rem; opacity: 0.72; } .cell .sc { font-family: var(--head); font-weight: 700; font-size: 0.74rem; }
+  .cell.dim { opacity: 0.24; } .cell.night { opacity: 0.13; box-shadow: none; }
+  .cell:hover::after { content: attr(data-tip); position: absolute; bottom: 116%; left: 50%;
+    transform: translateX(-50%); background: rgba(8,20,38,0.95); backdrop-filter: blur(10px);
+    border: 1px solid var(--stroke); color: #fff; padding: 9px 12px; border-radius: 14px;
+    font-size: 0.7rem; white-space: pre; z-index: 10; pointer-events: none; }
+  .legend { display: flex; flex-wrap: wrap; gap: 13px; justify-content: center; margin: 16px 0;
+    font-size: 0.68rem; color: var(--dim); }
+  .legend span { display: flex; align-items: center; gap: 5px; }
+  .dot { width: 12px; height: 12px; border-radius: 5px; display: inline-block; }
+  footer { text-align: center; color: var(--dim); font-size: 0.72rem; margin-top: 30px; }
+  .error { padding: 20px; text-align: center; }
 </style>
 </head>
 <body>
-<header>
-  <h1>🌊 SurfAlert</h1>
-  <div class="subtitle">Où &amp; quand filmer — côte landaise</div>
-  <div class="updated" id="updated"></div>
-</header>
+<div class="blob a"></div><div class="blob b"></div><div class="blob c"></div>
 
-<div class="filters" id="filters">
-  <button data-th="0">Tout voir</button>
-  <button data-th="6">🆗 ≥6</button>
-  <button data-th="7.5" class="active">📸 GO FILMER</button>
-  <button data-th="8.5">🚨 PRO</button>
+<div class="banner">
+  <img src="assets/wave.webp" alt="Vague de la côte landaise au lever du jour">
+  <div class="fade"></div>
+  <div class="title">
+    <h1>🌊 SurfAlert</h1>
+    <div class="subtitle">où &amp; quand filmer — côte landaise</div>
+  </div>
 </div>
 
-<div id="summary"></div>
+<div class="wrap">
+  <div class="updated" id="updated"></div>
 
-<button class="toggle" id="toggle">📊 Voir le détail heure par heure ▼</button>
-<div id="detail" class="hidden"></div>
+  <div class="filters" id="filters">
+    <button data-th="0">tout voir</button>
+    <button data-th="6">🆗 ≥6</button>
+    <button data-th="7.5" class="active">📸 go filmer</button>
+    <button data-th="8.5">🚨 pro</button>
+  </div>
 
-<footer>Données Open-Meteo · surfalert.fr</footer>
+  <div id="summary"></div>
+
+  <button class="toggle" id="toggle">voir le détail heure par heure ↓</button>
+  <div id="detail" class="hidden"></div>
+
+  <footer>données Open-Meteo · surfalert.fr</footer>
+</div>
 
 <script>
 const GO = 7.5, PRO = 8.5;
-let DATA = null;
-let threshold = 7.5;
+let DATA = null, threshold = 7.5;
 
-function scoreColor(s) {
-  if (s >= PRO)  return 'var(--c-fire)';
-  if (s >= GO)   return 'var(--c-good)';
-  if (s >= 6)    return 'var(--c-mid)';
-  if (s >= 4)    return 'var(--c-low)';
-  return 'var(--c-red)';
+function grad(s) {
+  if (s >= PRO) return 'linear-gradient(135deg,#ffb86c,#ff8a4c)';
+  if (s >= GO)  return 'linear-gradient(135deg,#5dffc0,#2bb4d8)';
+  if (s >= 6)   return 'linear-gradient(135deg,#ffe08a,#ffc24c)';
+  if (s >= 4)   return 'linear-gradient(135deg,#a9d4f2,#7fb4e6)';
+  return 'linear-gradient(135deg,#aaa2c8,#8f88ad)';
 }
-
-function whenLabel(dateStr, joursFr, withHour) {
-  const d = new Date(dateStr);
-  const today = new Date(); today.setHours(0,0,0,0);
+function solid(s) {
+  if (s >= PRO) return '#ff9a5c'; if (s >= GO) return '#4fe0c0';
+  if (s >= 6) return '#ffce6a'; if (s >= 4) return '#7fb4e6'; return '#9a93b8';
+}
+function whenLabel(dateStr, joursFr) {
+  const d = new Date(dateStr), today = new Date(); today.setHours(0,0,0,0);
   const that = new Date(d); that.setHours(0,0,0,0);
   const diff = Math.round((that - today) / 86400000);
   const jour = joursFr[(d.getDay() + 6) % 7];
   const dm = d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
-  let base;
-  if (diff === 0) base = "Aujourd'hui";
-  else if (diff === 1) base = 'Demain';
-  else base = `${jour.charAt(0).toUpperCase() + jour.slice(1)} ${dm}`;
-  return base;
+  if (diff === 0) return "aujourd'hui"; if (diff === 1) return 'demain';
+  return `${jour} ${dm}`;
 }
-
-// Détecte les créneaux continus (heures de jour consécutives) dont le pic >= seuil
 function findWindows(hours, th) {
-  const day = hours.filter(h => h.daytime);
-  const windows = [];
-  let cur = null;
+  const day = hours.filter(h => h.daytime); const windows = []; let cur = null;
   for (const h of day) {
     if (h.score >= th || (th === 0 && h.score >= 4)) {
-      if (cur && (new Date(h.time) - new Date(cur[cur.length-1].time)) <= 3600*1000+1) {
-        cur.push(h);
-      } else {
-        if (cur) windows.push(cur);
-        cur = [h];
-      }
+      if (cur && (new Date(h.time) - new Date(cur[cur.length-1].time)) <= 3600*1000+1) cur.push(h);
+      else { if (cur) windows.push(cur); cur = [h]; }
     } else if (cur) { windows.push(cur); cur = null; }
   }
   if (cur) windows.push(cur);
-  return windows.map(w => ({
-    start: w[0].time, end: w[w.length-1].time,
-    peak: w.reduce((a,b) => b.score > a.score ? b : a),
-  }));
+  return windows.map(w => ({ start: w[0].time, end: w[w.length-1].time,
+    peak: w.reduce((a,b) => b.score > a.score ? b : a) }));
 }
-
-function bestHour(hours) {
-  const day = hours.filter(h => h.daytime);
-  return day.length ? day.reduce((a,b) => b.score > a.score ? b : a) : null;
+function bestHour(hours) { const d = hours.filter(h => h.daytime);
+  return d.length ? d.reduce((a,b) => b.score > a.score ? b : a) : null; }
+function tagText(score, priority) {
+  if (score >= PRO && priority === 'fire') return '🚨 session pro';
+  if (score >= GO) return '📸 go filmer';
+  if (score >= 6)  return '🆗 surfable';
+  return '🌊 petit';
 }
-
-function sessionTag(score, priority) {
-  if (score >= PRO && priority === 'fire') return ['pro', '🚨 SESSION PRO'];
-  if (score >= GO) return ['go', '📸 GO FILMER'];
-  if (score >= 6)  return ['ok', '🆗 SURFABLE'];
-  return ['ok', '🌊 PETIT'];
-}
-
-function sessionCard(spot, win, joursFr) {
-  const p = win.peak;
-  const sH = new Date(win.start).getHours();
-  const eH = new Date(win.end).getHours();
-  const hourRange = sH === eH ? `${sH}h` : `${sH}h → ${eH}h`;
-  const [cls, label] = sessionTag(p.score, spot.priority);
+function condLine(p) {
   const light = p.light >= 9 ? ' · ☀️ golden hour' : '';
-  return `<div class="session">
-    <div class="score-box" style="background:${scoreColor(p.score)}">
-      <span class="n">${p.score}</span><span class="o">/10</span>
-    </div>
-    <div class="info">
-      <span class="tag ${cls}">${label}</span>
-      <div class="where">${spot.name}</div>
-      <div class="when"><b>${whenLabel(win.start, joursFr)}</b> · ${hourRange}
-        <span style="color:var(--text-dim)">(pic ${new Date(p.time).getHours()}h)</span></div>
-      <div class="cond">🌊 ${p.wave_h}m ${p.wave_p}s ${p.swell_label} ·
-        💨 ${p.wind_spd}km/h ${p.wind_label} ${p.offshore ? '✅' : '⚠️ onshore'}${light}</div>
-    </div>
+  return `🌊 ${p.wave_h}m ${p.wave_p}s ${p.swell_label} · 💨 ${p.wind_spd}km/h ${p.wind_label} ${p.offshore ? '✅' : '⚠️ onshore'}${light}`;
+}
+function range(win) {
+  const sH = new Date(win.start).getHours(), eH = new Date(win.end).getHours();
+  return sH === eH ? `${sH}h` : `${sH}h → ${eH}h`;
+}
+function heroCard(spot, win, joursFr) {
+  const p = win.peak, c = solid(p.score), g = grad(p.score);
+  return `<div class="card hero" style="--hero-glow:${c}">
+    <span class="htag" style="background:${c}30;color:${c};border:1px solid ${c}66">${tagText(p.score, spot.priority)}</span>
+    <div class="hscore"><span class="n" style="background-image:${g}">${p.score}</span><span class="o">/10</span></div>
+    <div class="hwhere">${spot.name}</div>
+    <div class="hwhen"><b>${whenLabel(win.start, joursFr)}</b> · ${range(win)} <span class="pic">(pic ${new Date(p.time).getHours()}h)</span></div>
+    <div class="hcond">${condLine(p)}</div>
   </div>`;
 }
-
+function sessionCard(spot, win, joursFr) {
+  const p = win.peak;
+  return `<div class="card session">
+    <div class="score-box" style="background:${grad(p.score)}"><span class="n">${p.score}</span></div>
+    <div class="info">
+      <span class="tag">${tagText(p.score, spot.priority)}</span>
+      <div class="where">${spot.name}</div>
+      <div class="when"><b>${whenLabel(win.start, joursFr)}</b> · ${range(win)} <span class="pic">(pic ${new Date(p.time).getHours()}h)</span></div>
+      <div class="cond">${condLine(p)}</div>
+    </div></div>`;
+}
 function renderSummary() {
   const all = [];
-  for (const spot of DATA.spots) {
-    for (const win of findWindows(spot.hours, threshold)) {
-      all.push({ spot, win });
-    }
-  }
-  // Tri chronologique : la prochaine bonne session d'abord
-  all.sort((a, b) => new Date(a.win.start) - new Date(b.win.start));
-
+  for (const spot of DATA.spots)
+    for (const win of findWindows(spot.hours, threshold)) all.push({ spot, win });
   const el = document.getElementById('summary');
-  if (all.length) {
-    el.innerHTML = `<div class="section-title">${all.length} créneau${all.length>1?'x':''} trouvé${all.length>1?'s':''}</div>`
-      + all.map(({spot, win}) => sessionCard(spot, win, DATA.jours_fr)).join('');
-  } else {
-    // Aucun créneau au seuil : on montre quand même le meilleur à venir
+  if (!all.length) {
     const tops = DATA.spots.map(s => ({ spot: s, h: bestHour(s.hours) }))
-      .filter(x => x.h).sort((a,b) => b.h.score - a.h.score).slice(0, 3);
-    el.innerHTML = `<div class="empty">😴 Aucune session ≥ ${threshold} dans les 5 prochains jours.<br>
-      <span style="font-size:0.8rem">Les meilleurs créneaux malgré tout :</span></div>`
-      + tops.map(({spot, h}) =>
-          sessionCard(spot, { start: h.time, end: h.time, peak: h }, DATA.jours_fr)).join('');
+      .filter(x => x.h).sort((a,b) => b.h.score - a.h.score).slice(0, 4);
+    const [first, ...rest] = tops;
+    el.innerHTML = `<div class="card empty">😴 aucune session ≥ ${threshold} dans les 5 prochains jours.<br>
+      <span style="font-size:0.8rem">voici les meilleurs moments malgré tout :</span></div>`
+      + (first ? `<div class="label">le meilleur créneau</div>` + heroCard(first.spot, { start: first.h.time, end: first.h.time, peak: first.h }, DATA.jours_fr) : '')
+      + (rest.length ? `<div class="label">autres options</div>` + rest.map(({spot, h}) =>
+          sessionCard(spot, { start: h.time, end: h.time, peak: h }, DATA.jours_fr)).join('') : '');
+    return;
   }
+  const hero = all.reduce((a, b) => b.win.peak.score > a.win.peak.score ? b : a);
+  const rest = all.filter(x => x !== hero).sort((a, b) => new Date(a.win.start) - new Date(b.win.start));
+  el.innerHTML = `<div class="label">ta meilleure session</div>`
+    + heroCard(hero.spot, hero.win, DATA.jours_fr)
+    + (rest.length ? `<div class="label">les autres créneaux</div>`
+        + rest.map(({spot, win}) => sessionCard(spot, win, DATA.jours_fr)).join('') : '');
 }
-
-function groupByDay(hours) {
-  const days = {};
-  for (const h of hours) (days[h.time.slice(0,10)] = days[h.time.slice(0,10)] || []).push(h);
-  return days;
-}
-
+function groupByDay(hours) { const d = {};
+  for (const h of hours) (d[h.time.slice(0,10)] = d[h.time.slice(0,10)] || []).push(h); return d; }
 function renderDetail() {
   const el = document.getElementById('detail');
   const legend = `<div class="legend">
-    <span><i class="dot" style="background:var(--c-red)"></i>&lt;4</span>
-    <span><i class="dot" style="background:var(--c-low)"></i>4–6</span>
-    <span><i class="dot" style="background:var(--c-mid)"></i>6–7.5</span>
-    <span><i class="dot" style="background:var(--c-good)"></i>≥7.5</span>
-    <span><i class="dot" style="background:var(--c-fire)"></i>≥8.5</span></div>`;
-
+    <span><i class="dot" style="background:var(--red)"></i>&lt;4</span>
+    <span><i class="dot" style="background:var(--low)"></i>4–6</span>
+    <span><i class="dot" style="background:var(--mid)"></i>6–7.5</span>
+    <span><i class="dot" style="background:var(--go)"></i>≥7.5</span>
+    <span><i class="dot" style="background:var(--pro)"></i>≥8.5</span></div>`;
   el.innerHTML = legend + DATA.spots.map(spot => {
-    const fire = spot.priority === 'fire' ? '<span class="badge-fire">FIRE</span>' : '';
+    const fire = spot.priority === 'fire' ? '<span class="badge-fire">fire</span>' : '';
     const days = groupByDay(spot.hours);
     const rows = Object.keys(days).sort().map(key => {
       const slot = days[key].filter(h => { const hr = new Date(h.time).getHours(); return hr >= 6 && hr <= 21; });
       const cells = slot.map(h => {
-        const hr = new Date(h.time).getHours();
-        const below = h.score < threshold;
-        const color = h.daytime ? scoreColor(h.score) : 'var(--bg-cell)';
+        const hr = new Date(h.time).getHours(), below = h.score < threshold;
+        const bg = h.daytime ? grad(h.score) : 'rgba(255,255,255,0.06)';
         const cls = !h.daytime ? 'night' : (below ? 'dim' : '');
         const tip = `${hr}h · ${h.score}/10\n${h.wave_h}m ${h.wave_p}s ${h.swell_label}\n💨 ${h.wind_spd}km/h ${h.wind_label} ${h.offshore?'offshore':'onshore'}\n☁️ ${h.cloud}%`;
-        return `<div class="cell ${cls}" style="background:${color}" data-tip="${tip}">
+        return `<div class="cell ${cls}" style="background:${bg}" data-tip="${tip}">
           <span class="h">${hr}h</span><span class="sc">${h.score>=4?h.score:''}</span></div>`;
       }).join('');
       return `<div class="day"><div class="day-label">${whenLabel(key, DATA.jours_fr)}</div>
         <div class="timeline">${cells}</div></div>`;
     }).join('');
-    return `<div class="spot"><div class="spot-head"><span class="spot-name">${spot.name}</span>${fire}</div>${rows}</div>`;
+    return `<div class="card spot"><div class="spot-head"><span class="spot-name">${spot.name}</span>${fire}</div>${rows}</div>`;
   }).join('');
 }
-
 function rerender() { renderSummary(); renderDetail(); }
-
 function init(data) {
   DATA = data;
   const upd = new Date(data.generated_at);
-  document.getElementById('updated').textContent =
-    'Mis à jour le ' + upd.toLocaleDateString('fr-FR') + ' à ' +
-    upd.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-
-  document.querySelectorAll('#filters button').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('#filters button').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      threshold = parseFloat(btn.dataset.th);
-      rerender();
-    });
-  });
-
+  document.getElementById('updated').textContent = 'mis à jour le ' + upd.toLocaleDateString('fr-FR')
+    + ' à ' + upd.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  document.querySelectorAll('#filters button').forEach(btn => btn.addEventListener('click', () => {
+    document.querySelectorAll('#filters button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active'); threshold = parseFloat(btn.dataset.th); rerender();
+  }));
   document.getElementById('toggle').addEventListener('click', () => {
-    const d = document.getElementById('detail');
-    d.classList.toggle('hidden');
+    const d = document.getElementById('detail'); d.classList.toggle('hidden');
     document.getElementById('toggle').textContent = d.classList.contains('hidden')
-      ? '📊 Voir le détail heure par heure ▼' : '📊 Masquer le détail ▲';
+      ? 'voir le détail heure par heure ↓' : 'masquer le détail ↑';
   });
-
   rerender();
 }
-
-fetch('data.json?t=' + Date.now())
-  .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
-  .then(init)
-  .catch(err => {
-    document.getElementById('summary').innerHTML =
-      `<div class="error">⚠️ Impossible de charger data.json (${err.message}).<br>
-       Lance le serveur : <code>python3 serve.py</code></div>`;
-  });
+fetch('data.json?t=' + Date.now()).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+  .then(init).catch(err => { document.getElementById('summary').innerHTML =
+    `<div class="card error">⚠️ lance le serveur : <code>python3 serve.py</code> (${err.message})</div>`; });
 </script>
 </body>
 </html>

@@ -12,3 +12,9 @@ surfalert.log
 __pycache__/
 *.pyc
 .DS_Store
+
+# Maquettes de travail (références locales, non publiées)
+mockup-*.html
+
+# Image source haute résolution (on publie la version .webp légère)
+assets/wave.png

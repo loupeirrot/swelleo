@@ -42,8 +42,9 @@ jobs:
 
       - name: Préparer le site
         run: |
-          mkdir -p _site
+          mkdir -p _site/assets
           cp index.html data.json _site/
+          cp -r assets/* _site/assets/
 
       - name: Configurer Pages
         uses: actions/configure-pages@v5

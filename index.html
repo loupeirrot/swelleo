@@ -194,15 +194,28 @@ function renderSpotsPanel() {
   const panel = document.getElementById('spots-panel'); if (!panel || !DATA) return;
   const byRegion = {};
   for (const s of DATA.spots) (byRegion[s.region] = byRegion[s.region] || []).push(s);
-  panel.innerHTML = Object.keys(byRegion).map(region =>
-    `<div class="label" style="margin:8px 6px 4px">${region}</div>`
-    + byRegion[region].map(s => {
-        const on = FAVS.includes(s.name);
-        return `<div class="spotrow" data-name="${s.name}" style="display:flex;justify-content:space-between;align-items:center;padding:9px 10px;border-radius:12px;cursor:pointer;${on ? 'background:rgba(79,224,192,0.14)' : ''}">
-          <span>${s.name}</span><span style="font-size:1.05rem">${on ? '⭐' : '☆'}</span></div>`;
-      }).join('')
-  ).join('');
+  panel.innerHTML = Object.keys(byRegion).map(region => {
+    const spots = byRegion[region];
+    const allOn = spots.every(s => FAVS.includes(s.name));
+    return `<div class="region-head" data-region="${region}" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;margin:10px 6px 4px">
+        <span class="label" style="margin:0">${region}</span>
+        <span style="font-size:0.72rem;color:var(--go)">${allOn ? '✓ tout retirer' : '+ tout sélectionner'}</span>
+      </div>`
+      + spots.map(s => {
+          const on = FAVS.includes(s.name);
+          return `<div class="spotrow" data-name="${s.name}" style="display:flex;justify-content:space-between;align-items:center;padding:9px 10px;border-radius:12px;cursor:pointer;${on ? 'background:rgba(79,224,192,0.14)' : ''}">
+            <span>${s.name}</span><span style="font-size:1.05rem">${on ? '⭐' : '☆'}</span></div>`;
+        }).join('');
+  }).join('');
+  panel.querySelectorAll('.region-head').forEach(h => { h.onclick = () => toggleRegion(h.dataset.region); });
   panel.querySelectorAll('.spotrow').forEach(row => { row.onclick = () => toggleFav(row.dataset.name); });
+}
+function toggleRegion(region) {
+  const names = DATA.spots.filter(s => s.region === region).map(s => s.name);
+  const allOn = names.every(n => FAVS.includes(n));
+  if (allOn) FAVS = FAVS.filter(n => !names.includes(n));
+  else names.forEach(n => { if (!FAVS.includes(n)) FAVS.push(n); });
+  saveFavs(); refreshSpots();
 }
 // Bandeau adapté aux conditions de l'instant : on prend l'heure la plus proche de
 // maintenant, sur le spot qui marche le mieux à cet instant, et on choisit l'image.
@@ -329,8 +342,10 @@ function tideLine(timeStr, tides) {
     else if (!after) after = e;
   }
   const fmt = e => `${e.type === 'haute' ? 'haute' : 'basse'} ${new Date(e.time).getHours()}h${String(new Date(e.time).getMinutes()).padStart(2, '0')}`;
-  const parts = [before, after].filter(Boolean).map(fmt);
-  return parts.length ? '🌊 marée : ' + parts.join(' → ') : '';
+  const shown = [before, after].filter(Boolean);
+  const est = shown.some(e => e.est);   // marée estimée par cycle (API indispo)
+  const parts = shown.map(fmt);
+  return parts.length ? '🌊 marée : ' + parts.join(' → ') + (est ? ' ≈' : '') : '';
 }
 // Quand : "demain à 9h" (créneau d'1h) ou "demain · 9h–11h" (fenêtre).
 function whenRange(win, joursFr) {

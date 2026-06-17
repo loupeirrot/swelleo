@@ -174,6 +174,31 @@ def load_previous():
         return {}
 
 
+TIDE_HALF = timedelta(hours=6, minutes=12, seconds=37)  # demi-cycle de marée (~12h25 complet)
+
+
+def project_tides(prev_extremes):
+    """Marée = phénomène cyclique : on projette les extrema connus vers l'avant pour
+    couvrir la fenêtre de prévision (approximation, en attendant une vraie mesure)."""
+    if not prev_extremes:
+        return []
+    exs = sorted(prev_extremes, key=lambda e: e["time"])
+    t = datetime.fromisoformat(exs[-1]["time"])
+    typ = exs[-1]["type"]
+    start = datetime.now(TZ) - timedelta(hours=6)
+    horizon = datetime.now(TZ) + timedelta(days=FORECAST_DAYS)
+    while t > start:                      # recule l'ancre avant le début de la fenêtre
+        t -= TIDE_HALF
+        typ = "basse" if typ == "haute" else "haute"
+    out = []
+    while t <= horizon:                   # puis projette en avant, en alternant haute/basse
+        if t >= start:
+            out.append({"time": t.isoformat(), "type": typ, "est": True})
+        t += TIDE_HALF
+        typ = "basse" if typ == "haute" else "haute"
+    return out
+
+
 def fetch_tides_by_region(prev_tides=None):
     """Une série de marées par région, au barycentre des spots de la région."""
     regions = {}
@@ -187,9 +212,9 @@ def fetch_tides_by_region(prev_tides=None):
             times, h = fetch_sea_level(lat, lon)
             tides[region] = compute_extremes(times, h)
         except Exception as e:
-            if prev_tides and region in prev_tides:
-                tides[region] = prev_tides[region]
-                print(f"  ↩︎ marées {region} : dernière donnée connue réutilisée")
+            if prev_tides and prev_tides.get(region):
+                tides[region] = project_tides(prev_tides[region])
+                print(f"  ↩︎ marées {region} : recalculées par cycle depuis la dernière donnée")
             else:
                 print(f"  ❌ marées {region} indisponibles : {e}")
     return tides

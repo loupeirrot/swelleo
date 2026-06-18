@@ -43,7 +43,7 @@ jobs:
       - name: Préparer le site
         run: |
           mkdir -p _site/assets
-          cp index.html data.json _site/
+          cp index.html data.json manifest.json sw.js _site/
           cp -r assets/* _site/assets/
 
       - name: Configurer Pages

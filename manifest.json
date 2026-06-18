@@ -1,0 +1,16 @@
+{
+  "name": "SurfAlert — où & quand surfer",
+  "short_name": "SurfAlert",
+  "description": "Le verdict go/no-go par spot pour savoir s'il faut aller surfer.",
+  "lang": "fr",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b2545",
+  "theme_color": "#0b2545",
+  "icons": [
+    { "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

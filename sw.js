@@ -1,5 +1,5 @@
 // Service worker SurfAlert — cache hors-ligne (app shell) + data.json frais en ligne.
-const CACHE = 'swelleo-v4';
+const CACHE = 'swelleo-v5';
 const SHELL = [
   './', './index.html', './manifest.json',
   './assets/icon-192.png', './assets/icon-512.png',

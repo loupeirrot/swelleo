@@ -5,7 +5,8 @@
       "name": "surfalert",
       "runtimeExecutable": "python3",
       "runtimeArgs": ["/Users/pierrebargeles/Documents/SurfAlert/serve.py"],
-      "port": 8000
+      "port": 8000,
+      "autoPort": true
     }
   ]
 }

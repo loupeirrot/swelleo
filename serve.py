@@ -9,7 +9,7 @@ import os
 import socketserver
 
 DIRECTORY = os.path.dirname(os.path.abspath(__file__))
-PORT = 8000
+PORT = int(os.environ.get("PORT", "8000"))
 
 Handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=DIRECTORY)
 

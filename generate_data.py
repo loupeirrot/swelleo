@@ -226,10 +226,10 @@ def fetch_tides_by_region(prev_tides=None):
 # Une bouée active par région ; type 2 = directionnel H13, type 0 = non directionnel.
 # ──────────────────────────────────────────
 BUOYS_BY_REGION = {
-    "Landes": ("06402", 2),       # Anglet
-    "Pays Basque": ("06403", 2),  # Saint-Jean-de-Luz
-    "Gironde": ("03302", 2),      # Cap Ferret
-    "Vendée": ("08504", 0),       # Île d'Yeu Nord
+    "Landes": ("06402", 2, "Anglet"),
+    "Pays Basque": ("06403", 2, "Saint-Jean-de-Luz"),
+    "Gironde": ("03302", 2, "Cap Ferret"),
+    "Vendée": ("08504", 0, "Île d'Yeu"),
     # Finistère : aucune bouée active actuellement
 }
 
@@ -248,7 +248,7 @@ def fetch_buoys(key):
         return {}
     hdr = {"Authorization": key}
     by_type = {}
-    for region, (code, typ) in BUOYS_BY_REGION.items():
+    for region, (code, typ, name) in BUOYS_BY_REGION.items():
         by_type.setdefault(typ, []).append(code)
     measures = {}
     for typ, codes in by_type.items():
@@ -261,14 +261,16 @@ def fetch_buoys(key):
             continue
         for row in (j.get("results") or []):
             d = _f(row[5]) if typ == 2 else None
+            temp = _f(row[7]) if typ == 2 else _f(row[6])
             measures[str(row[0])] = {
                 "time": row[1], "h": _f(row[2]), "period": _f(row[4]),
-                "dir": d, "dir_label": dir_label(d) if d is not None else "",
+                "dir": d, "dir_label": dir_label(d) if d is not None else "", "temp": temp,
             }
     out = {}
-    for region, (code, typ) in BUOYS_BY_REGION.items():
+    for region, (code, typ, name) in BUOYS_BY_REGION.items():
         m = measures.get(code)
         if m and m["h"] is not None:
+            m = dict(m); m["code"] = code; m["name"] = name
             out[region] = m
     return out
 

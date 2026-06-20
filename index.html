@@ -156,8 +156,14 @@
   .cam-foot { padding:9px 13px; background:rgba(6,13,24,0.86); display:flex; flex-direction:column; gap:1px; }
   .cam-foot .tile-play { font-family:var(--head); font-weight:600; font-size:0.82rem; color:#fff; }
   .b-tide svg { display:block; }
+  .map-section { display:none; }   /* carte des spots : desktop uniquement */
   .map-card { padding:16px; }
-  .france { width:100%; height:auto; max-height:420px; display:block; }
+  .france { width:100%; height:auto; max-height:440px; display:block; }
+  .maplbl { fill:rgba(234,242,249,0.82); font-family:'Space Grotesk',sans-serif; font-size:11px; font-weight:500; }
+  .buoy-head { display:flex; align-items:flex-start; justify-content:space-between; }
+  .buoy-ico { color:var(--go); flex-shrink:0; }
+  .buoy-name { font-family:var(--head); font-weight:600; font-size:0.92rem; margin-top:2px; }
+  .buoy-card .tile-big { margin-top:9px; font-size:1.85rem; }
   .spot-card { padding:15px 16px; display:flex; flex-direction:column; gap:6px; min-width:0; overflow:hidden; }
   .spot-card .sc-top { display:flex; align-items:center; justify-content:space-between; gap:8px; }
   .sc-score { font-family:var(--display); font-weight:700; font-size:1.9rem; line-height:1;
@@ -231,7 +237,8 @@
     .hero { min-height:clamp(520px,62vh,780px); margin-top:18px; justify-content:flex-start; }
     .hero-inner { text-align:left; max-width:920px; padding-left:38px; }
     .verdict { font-size:clamp(9rem,17vw,16rem); }
-    .france { max-width:480px; margin:0 auto; }
+    .map-section { display:block; }
+    .france { max-width:520px; margin:0 auto; }
     .hero-sub { font-size:1.2rem; }
     .label { margin:48px 6px 18px; font-size:0.84rem; }
     /* Bento étalé : best session (grand, 2 rangées) + bouée + webcam + marée large */
@@ -532,10 +539,26 @@ function spotNowHour(spot) {
   if (!spot.hours.length) return null; const now = Date.now();
   return spot.hours.reduce((a, b) => Math.abs(new Date(b.time) - now) < Math.abs(new Date(a.time) - now) ? b : a);
 }
+function tideTrend(region) {
+  const ex = TIDES[region]; if (!ex) return '';
+  const now = Date.now(); let next = null;
+  for (const e of ex) { if (new Date(e.time).getTime() > now) { next = e; break; } }
+  return next ? (next.type === 'haute' ? 'marée montante ↑' : 'marée descendante ↓') : '';
+}
 function buoyTile(spot) {
   const b = BUOYS[spot.region];
-  if (b && b.h != null) return `<div class="card glass tile b-buoy reveal"><span class="tile-label">🛰️ bouée live</span>
-    <div class="tile-big">${b.h.toFixed(1)}m</div><div class="sc-cond">${b.period ? Math.round(b.period) + 's' : ''} ${b.dir_label || ''}</div></div>`;
+  if (b && b.h != null) {
+    const ico = `<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.3"/><path d="M12 6.3V7.8"/><path d="M8.6 9.3h6.8l-1.1 6.1H9.7z"/><path d="M8.2 11.7h7.6"/><path d="M5.5 18c2.2 1.3 4.3 .3 6.5 .3S16 19.3 18.5 18"/></svg>`;
+    const l2 = `${b.period ? Math.round(b.period) + 's' : ''}${b.dir_label ? ' · ' + b.dir_label : ''}`;
+    const tr = tideTrend(spot.region), eau = b.temp != null ? 'eau ' + Math.round(b.temp) + '°C' : '';
+    return `<div class="card glass tile b-buoy buoy-card reveal">
+      <div class="buoy-head"><span class="tile-label">bouée live</span><span class="buoy-ico">${ico}</span></div>
+      <div class="buoy-name">${b.name || ('bouée ' + b.code)}</div>
+      <div class="tile-big">${b.h.toFixed(1)}m</div>
+      <div class="sc-cond">${l2}</div>
+      ${(eau || tr) ? `<div class="sc-cond">${[eau, tr].filter(Boolean).join(' · ')}</div>` : ''}
+    </div>`;
+  }
   const nh = spotNowHour(spot);
   return `<div class="card glass tile b-buoy reveal"><span class="tile-label">maintenant</span>
     <div class="tile-big">${nh ? nh.wave_h + 'm' : '—'}</div><div class="sc-cond">${nh ? nh.wave_p + 's ' + nh.swell_label : ''}</div></div>`;
@@ -582,11 +605,23 @@ function mapHtml(spots) {
     const v = verdict(w.peak.score);
     const x = ((s.lon - MAP.lonMin) * MAP.cosLat * MAP.scale).toFixed(1);
     const y = ((MAP.latMax - s.lat) * MAP.scale).toFixed(1);
-    return `<circle cx="${x}" cy="${y}" r="5.5" fill="${v.color}" stroke="rgba(6,13,24,0.85)" stroke-width="1.5" style="filter:drop-shadow(0 0 5px ${v.color})"><title>${s.name} · ${w.peak.score}/10</title></circle>`;
+    return `<circle cx="${x}" cy="${y}" r="5.5" fill="${v.color}" stroke="rgba(6,13,24,0.85)" stroke-width="1.5" style="filter:drop-shadow(0 0 6px ${v.color})"><title>${s.name} · ${w.peak.score}/10</title></circle>`;
   }).join('');
-  return `<div class="label">la carte des spots</div>
-    <div class="card glass map-card reveal"><svg viewBox="0 0 ${MAP.w} ${MAP.h}" class="france" role="img" aria-label="Carte des spots de surf en France">
-      <path d="${FR_PATH}" fill="rgba(52,232,158,0.045)" stroke="rgba(255,255,255,0.16)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>${dots}</svg></div>`;
+  const byReg = {};
+  for (const s of spots) (byReg[s.region] = byReg[s.region] || []).push(s);
+  const labels = Object.keys(byReg).map(reg => {
+    const a = byReg[reg];
+    const lon = a.reduce((t, s) => t + s.lon, 0) / a.length, lat = a.reduce((t, s) => t + s.lat, 0) / a.length;
+    const x = ((lon - MAP.lonMin) * MAP.cosLat * MAP.scale) + 11;
+    const y = ((MAP.latMax - lat) * MAP.scale) + 3;
+    return `<text class="maplbl" x="${x.toFixed(1)}" y="${y.toFixed(1)}">${reg}</text>`;
+  }).join('');
+  return `<div class="map-section"><div class="label">la carte des spots</div>
+    <div class="card glass map-card reveal">
+      <svg viewBox="0 0 ${MAP.w} ${MAP.h}" class="france" role="img" aria-label="Carte des spots de surf en France">
+        <path d="${FR_PATH}" fill="rgba(52,232,158,0.045)" stroke="rgba(255,255,255,0.16)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>${labels}${dots}</svg>
+      <div class="legend"><span><i class="dot" style="background:#34e89e"></i>go</span><span><i class="dot" style="background:#ffce6a"></i>ok</span><span><i class="dot" style="background:#ff6b6b"></i>no</span></div>
+    </div></div>`;
 }
 function renderSummary() {
   const el = document.getElementById('summary');

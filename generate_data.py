@@ -160,7 +160,7 @@ def compute_extremes(times, h):
     return extremes
 
 
-LIVE_DATA_URL = "https://loupeirrot.github.io/surfalert/data.json"
+LIVE_DATA_URL = "https://loupeirrot.github.io/swelleo/data.json"
 
 
 def load_previous():

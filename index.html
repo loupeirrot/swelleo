@@ -588,17 +588,39 @@ function tideTrend(region) {
 function buoyTile(spot) {
   const b = BUOYS[spot.region];
   if (b && b.h != null) {
-    const ico = `<svg viewBox="0 0 64 64" width="60" height="60" fill="none">
-      <circle cx="50" cy="13" r="2.4" fill="#34e89e" style="filter:drop-shadow(0 0 5px #34e89e)"/>
-      <circle cx="13" cy="40" r="1.8" fill="#34e89e" style="filter:drop-shadow(0 0 4px #34e89e)"/>
-      <circle cx="52" cy="44" r="1.6" fill="#34e89e" style="filter:drop-shadow(0 0 4px #34e89e)"/>
-      <circle cx="32" cy="8" r="2.8" fill="#34e89e" style="filter:drop-shadow(0 0 7px #34e89e)"/>
-      <path d="M32 11V17" stroke="#cdeee2" stroke-width="2" stroke-linecap="round"/>
-      <path d="M25.5 17h13" stroke="#cdeee2" stroke-width="2" stroke-linecap="round"/>
-      <path d="M25 17 L39 17 L42.5 33 Q42.5 47 32 47 Q21.5 47 21.5 33 Z" fill="rgba(52,232,158,0.12)" stroke="#cdeee2" stroke-width="2" stroke-linejoin="round"/>
-      <path d="M22.2 31.5H41.8" stroke="#34e89e" stroke-width="2.6"/>
-      <path d="M27 24h10" stroke="#cdeee2" stroke-width="1.6" stroke-linecap="round" opacity="0.65"/>
-      <path d="M15 49 Q23.5 44.5 32 49 T49 49" stroke="rgba(52,232,158,0.55)" stroke-width="2" stroke-linecap="round"/>
+    const ico = `<svg viewBox="0 0 72 72" width="64" height="64" fill="none">
+      <defs>
+        <linearGradient id="buoyBody" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#dceae4"/><stop offset="0.5" stop-color="#9fb6ae"/><stop offset="1" stop-color="#5e7972"/>
+        </linearGradient>
+        <linearGradient id="buoyLant" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#eef7f3"/><stop offset="1" stop-color="#8ea7a0"/>
+        </linearGradient>
+        <radialGradient id="buoyGlow" cx="0.5" cy="0.5" r="0.5">
+          <stop offset="0" stop-color="#34e89e" stop-opacity="0.55"/><stop offset="1" stop-color="#34e89e" stop-opacity="0"/>
+        </radialGradient>
+        <clipPath id="buoyClip"><path d="M22 46 L23.5 33 Q24 30 28 30 L44 30 Q48 30 48.5 33 L50 46 Q50 57 36 57 Q22 57 22 46 Z"/></clipPath>
+      </defs>
+      <ellipse cx="36" cy="38" rx="29" ry="27" fill="url(#buoyGlow)"/>
+      <g transform="rotate(-7 36 40)">
+        <path d="M28.5 31 L29 23 Q29 18.5 36 18.5 Q43 18.5 43 23 L43.5 31 Z" fill="url(#buoyLant)" stroke="rgba(255,255,255,0.35)" stroke-width="0.8"/>
+        <path d="M31 30 L41 21" stroke="rgba(56,86,78,0.5)" stroke-width="0.8"/>
+        <path d="M41 30 L31 21" stroke="rgba(56,86,78,0.5)" stroke-width="0.8"/>
+        <path d="M36 18.5 L36 12.5" stroke="#cdeee2" stroke-width="1.6" stroke-linecap="round"/>
+        <circle cx="36" cy="11" r="3.6" fill="#34e89e" opacity="0.4"/>
+        <circle cx="36" cy="11" r="2" fill="#e9fff6"/>
+        <path d="M22 46 L23.5 33 Q24 30 28 30 L44 30 Q48 30 48.5 33 L50 46 Q50 57 36 57 Q22 57 22 46 Z" fill="url(#buoyBody)" stroke="rgba(255,255,255,0.3)" stroke-width="0.9"/>
+        <g clip-path="url(#buoyClip)">
+          <path d="M20 41 H52 V46 H20 Z" fill="#34e89e"/>
+          <path d="M20 46 H52 V47.8 H20 Z" fill="#06281d" opacity="0.4"/>
+          <ellipse cx="28" cy="38" rx="3" ry="13" fill="#ffffff" opacity="0.3"/>
+          <ellipse cx="36" cy="58" rx="14" ry="5" fill="#33473f" opacity="0.55"/>
+        </g>
+        <path d="M19 60 Q27.5 56 36 60 T53 60" stroke="rgba(52,232,158,0.5)" stroke-width="1.6" stroke-linecap="round"/>
+      </g>
+      <circle cx="56" cy="20" r="2.4" fill="#34e89e" style="filter:drop-shadow(0 0 4px #34e89e)"/>
+      <circle cx="14" cy="44" r="1.8" fill="#34e89e" style="filter:drop-shadow(0 0 4px #34e89e)"/>
+      <circle cx="57" cy="46" r="1.6" fill="#34e89e" style="filter:drop-shadow(0 0 3px #34e89e)"/>
     </svg>`;
     const l2 = `${b.h.toFixed(1)}m${b.period ? ' @ ' + Math.round(b.period) + 's' : ''}${b.dir_label ? ' · ' + b.dir_label : ''}`;
     const tr = tideTrend(spot.region), eau = b.temp != null ? 'eau ' + Math.round(b.temp) + '°C' : '';

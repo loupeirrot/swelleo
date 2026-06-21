@@ -145,7 +145,7 @@
   .bento { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
   /* Bento du spot en avant (calqué sur la maquette) */
   .hero-bento { display:grid; grid-template-columns:1.35fr 1fr; gap:12px; align-items:stretch; }
-  .b-session { grid-row:span 2; }
+  .b-session { grid-row:auto; }              /* mobile : créneau + bouée côte à côte, marée pleine largeur */
   .b-tide { grid-column:1 / -1; }
   .tile { padding:14px 15px; display:flex; flex-direction:column; min-width:0; overflow:hidden; }
   .tile-label { font-family:var(--head); font-size:0.64rem; letter-spacing:1.5px; text-transform:uppercase; color:var(--dim); }
@@ -158,6 +158,10 @@
   .cam-foot { padding:9px 13px; background:rgba(6,13,24,0.86); display:flex; flex-direction:column; gap:1px; }
   .cam-foot .tile-play { font-family:var(--head); font-weight:600; font-size:0.82rem; color:#fff; }
   .b-tide svg { display:block; }
+  .tide-head { display:flex; align-items:center; justify-content:space-between; }
+  .tide-chev { color:var(--dim); font-size:1.2rem; line-height:1; font-weight:300; }
+  .tide-svg { width:100%; height:64px; margin-top:10px; }
+  .tide-foot { display:flex; justify-content:space-between; margin-top:6px; font-size:0.82rem; color:var(--dim); }
   .map-section { display:none; }   /* carte des spots : desktop uniquement */
   .map-card { padding:16px; }
   .france { width:100%; height:auto; max-height:440px; display:block; }
@@ -241,7 +245,7 @@
     .hero { min-height:clamp(520px,62vh,780px); margin-top:18px; justify-content:flex-start; }
     .hero-inner { text-align:left; max-width:920px; padding-left:38px; }
     .verdict { font-size:clamp(9rem,17vw,16rem); }
-    .top-grid { display:grid; grid-template-columns:1fr 232px; gap:22px; align-items:start; }
+    .top-grid { display:grid; grid-template-columns:1fr 262px; gap:22px; align-items:start; }
     .map-section { display:block; position:sticky; top:88px; }
     .france { width:100%; max-width:100%; max-height:none; margin:0; display:block; }
     .hero-sub { font-size:1.2rem; }
@@ -592,31 +596,55 @@ function camShootTile(spot, win) {
 }
 function tideGraph(region) {
   const ex = TIDES[region]; if (!ex || ex.length < 2) return '';
-  const W = 300, H = 46, pad = 5, now = Date.now();
-  const t0 = now - 5 * 3600000, t1 = now + 17 * 3600000;
-  const pts = ex.map(e => ({ t: new Date(e.time).getTime(), high: e.type === 'haute' }))
-    .filter(p => p.t >= t0 - 3600000 && p.t <= t1 + 3600000).sort((a, b) => a.t - b.t);
+  const W = 300, H = 70, padX = 4, now = Date.now();
+  const crest = 16, trough = H - 14;                       // y de la pleine mer / basse mer
+  const t0 = now - 6 * 3600000, t1 = now + 16 * 3600000;   // fenêtre ~22 h (≈ 2 cycles)
+  const HALF = 6.2067 * 3600000;                           // demi-cycle marée ≈ 6 h 12
+  let pts = ex.map(e => ({ t: new Date(e.time).getTime(), high: e.type === 'haute' })).sort((a, b) => a.t - b.t);
   if (pts.length < 2) return '';
-  const X = t => pad + (t - t0) / (t1 - t0) * (W - 2 * pad);
-  const Y = high => high ? pad + 5 : H - pad - 5;
-  let d = `M ${X(pts[0].t).toFixed(1)} ${Y(pts[0].high).toFixed(1)}`;
-  for (let i = 1; i < pts.length; i++) {
-    const x0 = X(pts[i-1].t), y0 = Y(pts[i-1].high), x1 = X(pts[i].t), y1 = Y(pts[i].high), mx = (x0 + x1) / 2;
-    d += ` C ${mx.toFixed(1)} ${y0.toFixed(1)}, ${mx.toFixed(1)} ${y1.toFixed(1)}, ${x1.toFixed(1)} ${y1.toFixed(1)}`;
+  while (pts[0].t > t0) pts.unshift({ t: pts[0].t - HALF, high: !pts[0].high });               // prolonge à gauche
+  while (pts[pts.length - 1].t < t1) pts.push({ t: pts[pts.length - 1].t + HALF, high: !pts[pts.length - 1].high }); // et à droite
+  const X = t => padX + (t - t0) / (t1 - t0) * (W - 2 * padX);
+  const lvl = h => h ? crest : trough;
+  const yAt = t => {                                       // interpolation cosinus entre extrema
+    if (t <= pts[0].t) return lvl(pts[0].high);
+    for (let i = 0; i < pts.length - 1; i++) {
+      if (t <= pts[i + 1].t) {
+        const f = (t - pts[i].t) / (pts[i + 1].t - pts[i].t), e = (1 - Math.cos(Math.PI * f)) / 2;
+        return lvl(pts[i].high) + (lvl(pts[i + 1].high) - lvl(pts[i].high)) * e;
+      }
+    }
+    return lvl(pts[pts.length - 1].high);
+  };
+  const N = 72; let d = '';
+  for (let i = 0; i <= N; i++) {
+    const t = t0 + (t1 - t0) * i / N, x = padX + (W - 2 * padX) * i / N, y = yAt(t);
+    d += (i ? ' L ' : 'M ') + x.toFixed(1) + ' ' + y.toFixed(1);
   }
-  const nx = X(now).toFixed(1);
+  const nx = X(now), ny = yAt(now), nf = (nx / W).toFixed(3);
   let before = null, after = null;
   for (const e of ex) { const et = new Date(e.time).getTime(); if (et <= now) before = e; else if (!after) after = e; }
-  const lab = [before, after].filter(Boolean)
-    .map(e => `${e.type} ${new Date(e.time).getHours()}h${String(new Date(e.time).getMinutes()).padStart(2,'0')}`).join(' → ');
-  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%;height:40px">
-    <path d="${d}" fill="none" stroke="#34e89e" stroke-width="2.5" stroke-linecap="round"/>
-    <line x1="${nx}" y1="3" x2="${nx}" y2="${H-3}" stroke="rgba(255,255,255,0.22)" stroke-width="1" stroke-dasharray="3 3"/>
-  </svg><div class="sc-cond">${lab}</div>`;
+  const fmt = e => `${e.type === 'haute' ? 'Haute' : 'Basse'} ${new Date(e.time).getHours()}h${String(new Date(e.time).getMinutes()).padStart(2, '0')}`;
+  const L = before ? fmt(before) : (after ? fmt(after) : '');
+  const R = after ? fmt(after) : '';
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" class="tide-svg">
+      <defs><linearGradient id="tideGrad" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="${W}" y2="0">
+        <stop offset="0" stop-color="#b6a684"/><stop offset="${nf}" stop-color="#b6a684"/>
+        <stop offset="${nf}" stop-color="#34e89e"/><stop offset="1" stop-color="#34e89e"/>
+      </linearGradient></defs>
+      <path d="${d}" fill="none" stroke="url(#tideGrad)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      <line x1="${nx.toFixed(1)}" y1="6" x2="${nx.toFixed(1)}" y2="${ny.toFixed(1)}" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+      <circle cx="${nx.toFixed(1)}" cy="${ny.toFixed(1)}" r="7" fill="#34e89e" opacity="0.25"/>
+      <circle cx="${nx.toFixed(1)}" cy="${ny.toFixed(1)}" r="4.5" fill="#fff" stroke="#0b1a12" stroke-width="1.5"/>
+    </svg>
+    <div class="tide-foot"><span>${L}</span><span>${R}</span></div>`;
 }
 function tideTile(region) {
   const g = tideGraph(region); if (!g) return '';
-  return `<div class="card glass tile b-tide reveal"><span class="tile-label">🌊 marée</span>${g}</div>`;
+  return `<div class="card glass tile b-tide tide-card reveal">
+    <div class="tide-head"><span class="tile-label">marée</span><span class="tide-chev">›</span></div>
+    ${g}
+  </div>`;
 }
 function mapHtml(spots) {
   const dots = spots.map(s => {

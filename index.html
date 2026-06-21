@@ -124,7 +124,9 @@
 
   /* ── Cards ── */
   .card { border-radius:var(--r); }
-  .feature { padding:22px 22px 20px; position:relative; overflow:hidden; }
+  .feature { padding:22px 22px 20px; position:relative; overflow:hidden; display:flex; flex-direction:column; align-items:flex-start; }
+  .feature .cam-btn { margin-top:auto; }
+  .feature .fline { margin-bottom:4px; }
   .feature::after { content:""; position:absolute; top:-40%; right:-15%; width:280px; height:280px; border-radius:50%;
     filter:blur(60px); opacity:0.45; background:var(--vc,#34e89e); z-index:0; }
   .feature > * { position:relative; z-index:1; }
@@ -160,11 +162,12 @@
   .map-card { padding:16px; }
   .france { width:100%; height:auto; max-height:440px; display:block; }
   .maplbl { fill:rgba(234,242,249,0.9); font-family:'Space Grotesk',sans-serif; font-size:7px; font-weight:500; paint-order:stroke; stroke:rgba(6,13,24,0.85); stroke-width:1.4px; }
-  .buoy-head { display:flex; align-items:flex-start; justify-content:space-between; }
-  .buoy-ico { color:var(--go); flex-shrink:0; }
-  .buoy-ico svg { filter:drop-shadow(0 0 6px rgba(52,232,158,0.6)); }
-  .buoy-name { font-family:var(--head); font-weight:600; font-size:0.92rem; margin-top:2px; }
-  .buoy-card .tile-big { margin-top:9px; font-size:1.85rem; }
+  .buoy-head { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; }
+  .buoy-ico { flex-shrink:0; margin:-6px -4px 0 0; }
+  .buoy-lines { display:flex; flex-direction:column; gap:4px; margin-top:10px; }
+  .buoy-name { font-family:var(--head); font-weight:700; font-size:1.08rem; color:var(--text); }
+  .buoy-row { font-size:0.86rem; color:var(--dim); }
+  .buoy-hl { color:var(--text); font-weight:600; }
   .spot-card { padding:15px 16px; display:flex; flex-direction:column; gap:6px; min-width:0; overflow:hidden; }
   .spot-card .sc-top { display:flex; align-items:center; justify-content:space-between; gap:8px; }
   .sc-score { font-family:var(--display); font-weight:700; font-size:1.9rem; line-height:1;
@@ -238,16 +241,15 @@
     .hero { min-height:clamp(520px,62vh,780px); margin-top:18px; justify-content:flex-start; }
     .hero-inner { text-align:left; max-width:920px; padding-left:38px; }
     .verdict { font-size:clamp(9rem,17vw,16rem); }
-    .top-grid { display:grid; grid-template-columns:1fr 300px; gap:22px; align-items:stretch; }
-    .top-left { display:flex; flex-direction:column; }
+    .top-grid { display:grid; grid-template-columns:1fr 232px; gap:22px; align-items:start; }
     .map-section { display:block; position:sticky; top:88px; }
-    .france { width:100%; max-width:none; max-height:none; margin:0; display:block; }
+    .france { width:100%; max-width:100%; max-height:none; margin:0; display:block; }
     .hero-sub { font-size:1.2rem; }
     .label { margin:48px 6px 18px; font-size:0.84rem; }
     /* Bento étalé : best session (grand, 2 rangées) + bouée + webcam + marée large */
-    .hero-bento { grid-template-columns:1.5fr 1fr 1fr; gap:16px; flex:1; grid-template-rows:1fr 1fr; align-content:stretch; }
+    .hero-bento { grid-template-columns:1.6fr 1fr; gap:16px; }
     .b-session { grid-row:span 2; }
-    .b-tide { grid-column:2 / -1; }
+    .b-tide { grid-column:2; }
     .fscore .n { font-size:5.2rem; }
     .fwhere { font-size:1.7rem; }
     /* Autres spots : grille fluide 3–4 colonnes */
@@ -523,6 +525,7 @@ function featureCard(spot, win) {
     <div class="fwhere">${spot.name}</div>
     <div class="fwhen">${whenRange(win, DATA.jours_fr)}</div>
     <div class="fline">🌊 ${condLine(p)}</div>
+    ${spot.webcam ? `<button class="cam-btn" data-cam="${spot.webcam}" data-name="${spot.name}">📹 webcam</button>` : ''}
   </div>`;
 }
 function spotCard(spot, win) {
@@ -551,15 +554,28 @@ function tideTrend(region) {
 function buoyTile(spot) {
   const b = BUOYS[spot.region];
   if (b && b.h != null) {
-    const ico = `<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.3"/><path d="M12 6.3V7.8"/><path d="M8.6 9.3h6.8l-1.1 6.1H9.7z"/><path d="M8.2 11.7h7.6"/><path d="M5.5 18c2.2 1.3 4.3 .3 6.5 .3S16 19.3 18.5 18"/></svg>`;
-    const l2 = `${b.period ? Math.round(b.period) + 's' : ''}${b.dir_label ? ' · ' + b.dir_label : ''}`;
+    const ico = `<svg viewBox="0 0 64 64" width="60" height="60" fill="none">
+      <circle cx="50" cy="13" r="2.4" fill="#34e89e" style="filter:drop-shadow(0 0 5px #34e89e)"/>
+      <circle cx="13" cy="40" r="1.8" fill="#34e89e" style="filter:drop-shadow(0 0 4px #34e89e)"/>
+      <circle cx="52" cy="44" r="1.6" fill="#34e89e" style="filter:drop-shadow(0 0 4px #34e89e)"/>
+      <circle cx="32" cy="8" r="2.8" fill="#34e89e" style="filter:drop-shadow(0 0 7px #34e89e)"/>
+      <path d="M32 11V17" stroke="#cdeee2" stroke-width="2" stroke-linecap="round"/>
+      <path d="M25.5 17h13" stroke="#cdeee2" stroke-width="2" stroke-linecap="round"/>
+      <path d="M25 17 L39 17 L42.5 33 Q42.5 47 32 47 Q21.5 47 21.5 33 Z" fill="rgba(52,232,158,0.12)" stroke="#cdeee2" stroke-width="2" stroke-linejoin="round"/>
+      <path d="M22.2 31.5H41.8" stroke="#34e89e" stroke-width="2.6"/>
+      <path d="M27 24h10" stroke="#cdeee2" stroke-width="1.6" stroke-linecap="round" opacity="0.65"/>
+      <path d="M15 49 Q23.5 44.5 32 49 T49 49" stroke="rgba(52,232,158,0.55)" stroke-width="2" stroke-linecap="round"/>
+    </svg>`;
+    const l2 = `${b.h.toFixed(1)}m${b.period ? ' @ ' + Math.round(b.period) + 's' : ''}${b.dir_label ? ' · ' + b.dir_label : ''}`;
     const tr = tideTrend(spot.region), eau = b.temp != null ? 'eau ' + Math.round(b.temp) + '°C' : '';
     return `<div class="card glass tile b-buoy buoy-card reveal">
       <div class="buoy-head"><span class="tile-label">bouée live</span><span class="buoy-ico">${ico}</span></div>
-      <div class="buoy-name">${b.name || ('bouée ' + b.code)}</div>
-      <div class="tile-big">${b.h.toFixed(1)}m</div>
-      <div class="sc-cond">${l2}</div>
-      ${(eau || tr) ? `<div class="sc-cond">${[eau, tr].filter(Boolean).join(' · ')}</div>` : ''}
+      <div class="buoy-lines">
+        <div class="buoy-name">${b.name || ('bouée ' + b.code)}</div>
+        <div class="buoy-row buoy-hl">${l2}</div>
+        ${eau ? `<div class="buoy-row">${eau}</div>` : ''}
+        ${tr ? `<div class="buoy-row">${tr}</div>` : ''}
+      </div>
     </div>`;
   }
   const nh = spotNowHour(spot);
@@ -576,7 +592,7 @@ function camShootTile(spot, win) {
 }
 function tideGraph(region) {
   const ex = TIDES[region]; if (!ex || ex.length < 2) return '';
-  const W = 300, H = 66, pad = 6, now = Date.now();
+  const W = 300, H = 46, pad = 5, now = Date.now();
   const t0 = now - 5 * 3600000, t1 = now + 17 * 3600000;
   const pts = ex.map(e => ({ t: new Date(e.time).getTime(), high: e.type === 'haute' }))
     .filter(p => p.t >= t0 - 3600000 && p.t <= t1 + 3600000).sort((a, b) => a.t - b.t);
@@ -593,7 +609,7 @@ function tideGraph(region) {
   for (const e of ex) { const et = new Date(e.time).getTime(); if (et <= now) before = e; else if (!after) after = e; }
   const lab = [before, after].filter(Boolean)
     .map(e => `${e.type} ${new Date(e.time).getHours()}h${String(new Date(e.time).getMinutes()).padStart(2,'0')}`).join(' → ');
-  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%;height:58px">
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%;height:40px">
     <path d="${d}" fill="none" stroke="#34e89e" stroke-width="2.5" stroke-linecap="round"/>
     <line x1="${nx}" y1="3" x2="${nx}" y2="${H-3}" stroke="rgba(255,255,255,0.22)" stroke-width="1" stroke-dasharray="3 3"/>
   </svg><div class="sc-cond">${lab}</div>`;
@@ -643,7 +659,6 @@ function renderSummary() {
         <div class="hero-bento">
           ${featureCard(top.spot, top.win)}
           ${buoyTile(top.spot)}
-          ${camShootTile(top.spot, top.win)}
           ${tideTile(top.spot.region)}
         </div>
       </div>

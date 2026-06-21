@@ -231,6 +231,29 @@
     .hero-wave { animation:none; }
   }
 
+  /* ── Interactions « lumière réelle » (curseur) ── */
+  .card { transform-style:preserve-3d; }
+  .card::before { content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none; z-index:3;
+    background:radial-gradient(190px 190px at var(--mx,50%) var(--my,50%), rgba(255,248,230,0.32), rgba(255,248,230,0.06) 38%, transparent 60%);
+    opacity:0; transition:opacity .3s var(--ease); mix-blend-mode:screen; }
+  .card.lit::before { opacity:1; }
+  .card.lit { transform:perspective(800px) rotateX(var(--ry,0deg)) rotateY(var(--rx,0deg)) scale(1.018);
+    transition:transform .1s ease-out, box-shadow .3s var(--ease); z-index:5;
+    box-shadow:0 34px 80px rgba(2,8,18,0.66), inset 0 1px 0 rgba(255,255,255,0.22); }
+  .hero-bg { transform:translate3d(var(--hx,0),var(--hy,0),0) scale(1.06); transition:transform .2s ease-out; }
+  #hero .verdict { transition:transform .2s ease-out;
+    transform:translate3d(calc(var(--hx,0px) * -0.55), calc(var(--hy,0px) * -0.55), 0); }
+  /* halos vivants (respiration) */
+  @keyframes haloBreathe { 0%,100% { opacity:.4; transform:scale(1); } 50% { opacity:.6; transform:scale(1.07); } }
+  @keyframes verdictPulse { 0%,100% { text-shadow:0 0 42px var(--glow,#34e89e); } 50% { text-shadow:0 0 90px var(--glow,#34e89e), 0 0 38px var(--glow,#34e89e); } }
+  .feature::after { animation:haloBreathe 5s ease-in-out infinite; }
+  #hero .verdict { animation:verdictPulse 4.2s ease-in-out infinite; }
+  @media (hover:none) { .card::before { display:none; } }
+  @media (prefers-reduced-motion:reduce) {
+    .card.lit { transform:none; } .hero-bg, #hero .verdict { transform:none; }
+    .feature::after, #hero .verdict { animation:none; }
+  }
+
   /* ── Webcam modal ── */
   .modal-backdrop { position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center;
     padding:14px; background:rgba(4,9,18,0.78); backdrop-filter:blur(8px); }
@@ -628,7 +651,8 @@ function tideGraph(region) {
     const t = t0 + (t1 - t0) * i / N, x = padX + (W - 2 * padX) * i / N, y = yAt(t);
     d += (i ? ' L ' : 'M ') + x.toFixed(1) + ' ' + y.toFixed(1);
   }
-  const nx = X(now), ny = yAt(now), nf = (nx / W).toFixed(3);
+  const nx = X(now), ny = yAt(now), nf = nx / W;
+  const f0 = Math.max(0, nf - 0.22).toFixed(3), f1 = Math.min(1, nf + 0.22).toFixed(3);  // zone de fondu sable→vert
   let before = null, after = null;
   for (const e of ex) { const et = new Date(e.time).getTime(); if (et <= now) before = e; else if (!after) after = e; }
   const fmt = e => `${e.type === 'haute' ? 'Haute' : 'Basse'} ${new Date(e.time).getHours()}h${String(new Date(e.time).getMinutes()).padStart(2, '0')}`;
@@ -636,8 +660,8 @@ function tideGraph(region) {
   const R = after ? fmt(after) : '';
   return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" class="tide-svg">
       <defs><linearGradient id="tideGrad" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="${W}" y2="0">
-        <stop offset="0" stop-color="#b6a684"/><stop offset="${nf}" stop-color="#b6a684"/>
-        <stop offset="${nf}" stop-color="#34e89e"/><stop offset="1" stop-color="#34e89e"/>
+        <stop offset="0" stop-color="#b6a684"/><stop offset="${f0}" stop-color="#b6a684"/>
+        <stop offset="${f1}" stop-color="#34e89e"/><stop offset="1" stop-color="#34e89e"/>
       </linearGradient></defs>
       <path d="${d}" fill="none" stroke="url(#tideGrad)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
       <line x1="${nx.toFixed(1)}" y1="6" x2="${nx.toFixed(1)}" y2="${ny.toFixed(1)}" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
@@ -738,6 +762,32 @@ function observeReveals() {
 }
 function rerender() { renderSummary(); renderDetail(); observeReveals(); }
 
+// ── Interactions pointeur : lumière + relief sur les cartes, parallaxe du héros ──
+function setupInteractions() {
+  if (matchMedia('(hover:none)').matches || matchMedia('(prefers-reduced-motion:reduce)').matches) return;
+  let cur = null, lastE = null, raf = 0;
+  const apply = () => {
+    raf = 0; const e = lastE; if (!e) return;
+    const card = e.target.closest ? e.target.closest('.card') : null;
+    if (cur && cur !== card) { cur.classList.remove('lit'); cur.style.removeProperty('--rx'); cur.style.removeProperty('--ry'); }
+    cur = card; if (!card) return;
+    const r = card.getBoundingClientRect();
+    const mx = (e.clientX - r.left) / r.width, my = (e.clientY - r.top) / r.height;
+    card.style.setProperty('--mx', (mx * 100).toFixed(1) + '%');
+    card.style.setProperty('--my', (my * 100).toFixed(1) + '%');
+    card.style.setProperty('--rx', ((mx - 0.5) * 9).toFixed(2) + 'deg');
+    card.style.setProperty('--ry', (-(my - 0.5) * 9).toFixed(2) + 'deg');
+    card.classList.add('lit');
+    const hero = document.getElementById('hero'), hr = hero && hero.getBoundingClientRect();
+    if (hr && e.clientY < hr.bottom && e.clientY > hr.top) {
+      hero.style.setProperty('--hx', (((e.clientX - hr.left) / hr.width - 0.5) * 16).toFixed(1) + 'px');
+      hero.style.setProperty('--hy', (((e.clientY - hr.top) / hr.height - 0.5) * 16).toFixed(1) + 'px');
+    }
+  };
+  addEventListener('pointermove', e => { lastE = e; if (!raf) raf = requestAnimationFrame(apply); }, { passive: true });
+  addEventListener('pointerout', e => { if (!e.relatedTarget && cur) { cur.classList.remove('lit'); cur = null; } }, { passive: true });
+}
+
 // ── Webcam ──
 function openCam(url, name) {
   document.getElementById('cam-title').textContent = name;
@@ -773,6 +823,7 @@ function init(data) {
     if (p.style.display !== 'none' && !p.contains(e.target) && !e.target.closest('#spots-toggle')) p.style.display = 'none';
   });
   rerender();
+  setupInteractions();
 }
 fetch('data.json?t=' + Date.now()).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
   .then(init).catch(err => { document.getElementById('summary').innerHTML =

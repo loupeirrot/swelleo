@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "defaultMode": "acceptEdits",
+    "allow": [
+      "Bash(git *)",
+      "Bash(gh *)",
+      "Bash(node *)",
+      "Bash(python3 *)",
+      "Bash(/usr/bin/python3 *)",
+      "Bash(curl *)",
+      "Bash(npm *)",
+      "Bash(npx *)",
+      "Bash(brew *)",
+      "Bash(mkdir *)",
+      "Bash(cp *)",
+      "Bash(mv *)",
+      "Bash(touch *)",
+      "Bash(chmod *)",
+      "Bash(rm *)",
+      "mcp__Claude_Preview",
+      "mcp__38d81f31-11fc-4eaf-a53f-0d8dd0cc88ee",
+      "mcp__visualize"
+    ]
+  }
+}

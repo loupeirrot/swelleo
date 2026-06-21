@@ -39,6 +39,8 @@
     background:
       radial-gradient(60% 40% at 78% 6%, rgba(52,232,158,0.14), transparent 70%),
       radial-gradient(55% 45% at 12% 22%, rgba(44,196,182,0.12), transparent 70%),
+      radial-gradient(48% 36% at 86% 50%, rgba(255,214,165,0.08), transparent 70%),
+      radial-gradient(46% 34% at 6% 70%, rgba(255,205,150,0.06), transparent 70%),
       radial-gradient(80% 60% at 50% 110%, rgba(13,90,120,0.30), transparent 70%),
       linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
     background-attachment:fixed; position:relative; overflow-x:hidden;
@@ -52,9 +54,14 @@
     padding:9px 15px; border-radius:12px; font-family:var(--head); font-weight:600; text-decoration:none; }
   .skip:focus { left:12px; }
 
-  /* ── Glass utility (double-bezel) ── */
-  .glass { background:rgba(17,29,46,0.66); border:1px solid var(--stroke);
-    box-shadow:0 18px 50px rgba(2,8,18,0.5), inset 0 1px 0 rgba(255,255,255,0.10); }
+  /* ── Glass utility (double-bezel + halos chauds qui texturent le verre) ── */
+  .glass { background:
+      radial-gradient(150% 130% at 76% -28%, rgba(255,227,188,0.26), rgba(255,227,188,0) 62%),
+      radial-gradient(90% 70% at 18% 8%, rgba(255,236,205,0.10), transparent 55%),
+      radial-gradient(120% 95% at 6% 120%, rgba(52,232,158,0.07), transparent 55%),
+      rgba(17,29,46,0.66);
+    border:1px solid var(--stroke);
+    box-shadow:0 18px 50px rgba(2,8,18,0.5), inset 0 1px 0 rgba(255,255,255,0.14); }
 
   /* ── Nav (floating island) ── */
   nav { position:sticky; top:0; z-index:40; padding:14px 16px 0; }

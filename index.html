@@ -238,13 +238,14 @@
     .hero { min-height:clamp(520px,62vh,780px); margin-top:18px; justify-content:flex-start; }
     .hero-inner { text-align:left; max-width:920px; padding-left:38px; }
     .verdict { font-size:clamp(9rem,17vw,16rem); }
-    .top-grid { display:grid; grid-template-columns:1fr 340px; gap:22px; align-items:start; }
+    .top-grid { display:grid; grid-template-columns:1fr 300px; gap:22px; align-items:stretch; }
+    .top-left { display:flex; flex-direction:column; }
     .map-section { display:block; position:sticky; top:88px; }
-    .france { width:100%; max-width:none; margin:0; }
+    .france { width:100%; max-width:none; max-height:none; margin:0; display:block; }
     .hero-sub { font-size:1.2rem; }
     .label { margin:48px 6px 18px; font-size:0.84rem; }
     /* Bento étalé : best session (grand, 2 rangées) + bouée + webcam + marée large */
-    .hero-bento { grid-template-columns:1.5fr 1fr 1fr; gap:16px; }
+    .hero-bento { grid-template-columns:1.5fr 1fr 1fr; gap:16px; flex:1; grid-template-rows:1fr 1fr; align-content:stretch; }
     .b-session { grid-row:span 2; }
     .b-tide { grid-column:2 / -1; }
     .fscore .n { font-size:5.2rem; }

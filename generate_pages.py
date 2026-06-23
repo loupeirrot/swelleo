@@ -212,9 +212,12 @@ def head(title, desc, url, photo, jsonld):
 <meta property="og:type" content="article">
 <meta property="og:title" content="{esc(title)}">
 <meta property="og:description" content="{esc(desc)}">
-<meta property="og:image" content="{SITE_BASE}/assets/{photo}.webp">
+<meta property="og:image" content="{SITE_BASE}/assets/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
 <meta property="og:url" content="{url}">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="{SITE_BASE}/assets/og.jpg">
 <link rel="icon" href="{SITE_BASE}/assets/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

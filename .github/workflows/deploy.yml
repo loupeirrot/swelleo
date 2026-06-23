@@ -51,6 +51,7 @@ jobs:
           cp index.html data.json manifest.json sw.js sitemap.xml robots.txt _site/
           cp -r assets/* _site/assets/
           cp -r spots _site/spots
+          cp -r regions _site/regions
 
       - name: Configurer Pages
         uses: actions/configure-pages@v5

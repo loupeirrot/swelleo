@@ -117,6 +117,8 @@ STYLE = """
   .hero-sub{font-size:1.05rem;font-weight:600;margin-top:14px}
   .hero-up{font-size:0.86rem;color:var(--dim);margin-top:6px}
   .content-hero{min-height:clamp(240px,36vh,360px)}
+  .content-banner{width:100%;border-radius:26px;display:block;margin-top:12px;box-shadow:0 18px 50px rgba(2,8,18,0.5)}
+  .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
   h1{font-size:1.35rem;font-weight:600;margin:26px 4px 4px}
   .sub{color:var(--dim);margin:0 4px 18px;font-size:0.95rem}
   .glass{background:
@@ -271,18 +273,11 @@ def content_page(slug_, title, desc, h1, body_html, hero_img=None, hero_caption=
     url = f"{SITE_BASE}/{slug_}/"
     jsonld = json.dumps({"@context": "https://schema.org", "@type": "WebPage", "name": title, "description": desc, "url": url}, ensure_ascii=False)
     if hero_img:
-        hero = f"""
-  <section id="hero" class="hero content-hero">
-    <div class="hero-bg"><img src="{SITE_BASE}/assets/{hero_img}" alt="{esc(h1)}" onerror="this.src='{SITE_BASE}/assets/wave-clean.webp'" fetchpriority="high"></div>
-    <div class="hero-inner">
-      <span class="eyebrow">swelleo</span>
-      <div class="rname">{esc(h1)}</div>
-      {f'<div class="hero-up">{esc(hero_caption)}</div>' if hero_caption else ''}
-    </div>
-  </section>"""
         body = f"""
-  <div class="crumb"><a href="{SITE_BASE}/">Accueil</a> · {esc(h1)}</div>{hero}
-  <div class="card glass reveal" style="margin-top:18px">{body_html}</div>{FOOTER}"""
+  <div class="crumb"><a href="{SITE_BASE}/">Accueil</a> · {esc(h1)}</div>
+  <h1 class="sr-only">{esc(h1)}</h1>
+  <img class="content-banner reveal" src="{SITE_BASE}/assets/{hero_img}" alt="{esc(h1)}" fetchpriority="high">
+  <div class="card glass reveal" style="margin-top:16px">{body_html}</div>{FOOTER}"""
     else:
         body = f"""
   <div class="crumb"><a href="{SITE_BASE}/">Accueil</a> · {esc(h1)}</div>
@@ -315,6 +310,22 @@ def spot_page(spot, tides, buoys):
     tide_row = f'<div class="row"><span>Marée</span><span>{esc(tide)}</span></div>' if tide else ""
     webcam_btn = f'<a class="btn2" href="{esc(spot["webcam"])}" target="_blank" rel="noopener">📹 Webcam live</a>' if spot.get("webcam") else ""
 
+    info = SPOT_INFO.get(slugify(spot["name"]))
+    info_card = ""
+    if info:
+        sw, ti, lv, dg, ac = info
+        info_card = f"""
+  <div class="card glass reveal">
+    <h2>Conditions idéales</h2>
+    <div class="rows">
+      <div class="row"><span>Houle</span><span>{esc(sw)}</span></div>
+      <div class="row"><span>Marée</span><span>{esc(ti)}</span></div>
+      <div class="row"><span>Niveau</span><span>{esc(lv)}</span></div>
+      <div class="row"><span>Dangers</span><span>{esc(dg)}</span></div>
+      <div class="row"><span>Accès</span><span>{esc(ac)}</span></div>
+    </div>
+    <p class="about" style="margin-top:12px;font-size:0.82rem">Indications générales à affiner — jugez toujours les conditions sur place.</p>
+  </div>"""
     url = f"{SITE_BASE}/spots/{slugify(spot['name'])}/"
     title = f"Surf {name} — prévision & conditions | swelleo"
     desc = f"Verdict {vword} pour {name} ({region}) : {wave}, vent {wind}. Prévision, marée et webcam en direct sur swelleo."
@@ -347,6 +358,7 @@ def spot_page(spot, tides, buoys):
     <a class="cta" href="{SITE_BASE}/">Voir tous les spots →</a>
     {webcam_btn}
   </div>
+  {info_card}
   <div class="card glass reveal">
     <h2>À propos de ce spot</h2>
     <p class="about">Le verdict <strong style="color:{vcolor}">{vword}</strong> pour {esc(name)} est calculé à partir de la houle (hauteur, période, direction) et du vent, croisés avec l'orientation du spot. Ouvrez l'app pour le détail heure par heure et comparer avec les autres spots de <a href="{SITE_BASE}/regions/{rslug}/">{esc(region)}</a>.</p>
@@ -440,7 +452,26 @@ CONTENT = {
 
 # Image de héros optionnelle par page de contenu (souvenir de Norvège pour À propos)
 CONTENT_HERO = {
-    "a-propos": ("about-norway.jpg", "Souvenir de Norvège"),
+    "a-propos": ("about-hero.jpg", None),
+}
+
+# Infos par spot (indications générales à affiner) : houle / marée / niveau / dangers / accès
+SPOT_INFO = {
+    "la-nord-hossegor": ("Houle O à NO, ~1,5–3 m", "Mi-marée montante", "Confirmé à expert", "Beach-break très puissant, baïnes et courants forts", "Parking plage Nord"),
+    "la-graviere-hossegor": ("Houle O, creuse", "Marée basse à mi-marée", "Expert (tube)", "Shore-break violent, bancs de sable changeants", "Parking La Gravière / La Centrale"),
+    "les-estagnots-seignosse": ("Houle O à SO", "Mi-marée", "Intermédiaire à confirmé", "Baïnes et courants", "Parking Estagnots / Bourdaines"),
+    "santocha-capbreton": ("Houle O, filtrée par le Gouf", "Mi-marée montante", "Intermédiaire", "Courant près de l'estacade / digue", "Parking Santocha"),
+    "la-piste-capbreton": ("Houle O à NO, puissante", "Marée basse à mi-marée", "Confirmé à expert", "Gros beach-break près du Gouf, courants", "Parking La Piste"),
+    "cote-des-basques-biarritz": ("Houle O à NO", "À marée basse (recouvert à marée haute)", "Débutant / longboard", "Rochers à marée basse", "Parking Côte des Basques (limité)"),
+    "les-cavaliers-anglet": ("Houle O à NO", "Mi-marée", "Confirmé", "Courant de l'Adour, proximité digue", "Parking Les Cavaliers"),
+    "hendaye": ("Houle N à NO (spot abrité)", "Mi-marée à marée haute", "Débutant à tous niveaux", "Courants par grosse houle", "Grand parking en front de mer"),
+    "lacanau-ocean": ("Houle O à NO", "Mi-marée", "Tous niveaux", "Baïnes dangereuses", "Parking central plage"),
+    "le-porge-ocean": ("Houle O", "Mi-marée", "Tous niveaux", "Baïnes et courants forts", "Grand parking (forêt)"),
+    "cap-ferret": ("Houle O à NO (la pointe)", "Mi-marée", "Confirmé", "Courants et passes du Bassin très dangereux", "Parking plage"),
+    "la-sauzaie-bretignolles": ("Houle O à NO", "Marée basse à mi-marée", "Confirmé", "Rochers (reef)", "Parking La Sauzaie"),
+    "les-conches-longeville": ("Houle O à SO", "Mi-marée", "Tous niveaux à confirmé", "Baïnes", "Parking Les Conches"),
+    "la-torche": ("Houle O / NO / SO (très exposé)", "Mi-marée", "Tous niveaux selon la zone", "Vent fort fréquent, courant au nord (dangereux)", "Grand parking"),
+    "la-palue-crozon": ("Houle O à NO", "Marée basse à mi-marée", "Confirmé à expert (spot sauvage)", "Courants forts, aucun secours", "Parking en haut, accès à pied"),
 }
 
 

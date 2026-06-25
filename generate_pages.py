@@ -181,6 +181,12 @@ STYLE = """
 
 SCRIPT = """
 (function(){
+  document.addEventListener('click',function(e){
+    var b=e.target.closest('[data-share]'); if(!b)return;
+    var url=b.getAttribute('data-share'), title=b.getAttribute('data-title')||'swelleo';
+    if(navigator.share){navigator.share({title:title,url:url}).catch(function(){});}
+    else if(navigator.clipboard){navigator.clipboard.writeText(url).then(function(){var o=b.textContent;b.textContent='Lien copié ✓';setTimeout(function(){b.textContent=o;},1800);});}
+  });
   var rev=document.querySelectorAll('.reveal');
   if('IntersectionObserver' in window){
     var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:0.06});
@@ -357,6 +363,7 @@ def spot_page(spot, tides, buoys):
   <div class="actions">
     <a class="cta" href="{SITE_BASE}/">Voir tous les spots →</a>
     {webcam_btn}
+    <button class="btn2" data-share="{url}" data-title="Surf {esc(name)} — swelleo">Partager</button>
   </div>
   {info_card}
   <div class="card glass reveal">
@@ -416,7 +423,8 @@ def region_page(region, spots, tides):
   <div class="grid">
     {''.join(cards)}
   </div>
-  <div class="actions"><a class="cta" href="{SITE_BASE}/">Voir tous les spots →</a></div>
+  <div class="actions"><a class="cta" href="{SITE_BASE}/">Voir tous les spots →</a>
+    <button class="btn2" data-share="{url}" data-title="Surf {esc(region)} — swelleo">Partager</button></div>
   <div class="card glass reveal">
     <h2>Surfer en {esc(region)}</h2>
     <p class="about">swelleo calcule pour chaque spot de {esc(region)} un verdict clair go/no-go à partir de la houle, du vent et de l'orientation du spot, avec marées et bouées en direct. De quoi savoir en un coup d'œil où aller surfer aujourd'hui.</p>
@@ -438,7 +446,7 @@ CONTENT = {
     "mentions-legales": ("Mentions légales | swelleo",
                          "Mentions légales du site swelleo.",
                          "Mentions légales",
-                         """<p class="about"><strong>Éditeur :</strong> swelleo — projet personnel non commercial. Contact : via le dépôt <a href="https://github.com/loupeirrot/swelleo" target="_blank" rel="noopener">GitHub</a>.</p>
+                         """<p class="about"><strong>Éditeur :</strong> swelleo — projet personnel non commercial. Contact : <a href="mailto:contact@swelleo.com">contact@swelleo.com</a>.</p>
 <p class="about" style="margin-top:12px"><strong>Hébergement :</strong> GitHub Pages — GitHub, Inc., 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, USA.</p>
 <p class="about" style="margin-top:12px"><strong>Données :</strong> Open-Meteo (prévisions), Candhis / Cerema sous Licence Ouverte (bouées), webcams des partenaires cités. swelleo n'est pas responsable de l'exactitude des prévisions : restez prudents et jugez toujours les conditions sur place.</p>"""),
     "confidentialite": ("Confidentialité | swelleo",

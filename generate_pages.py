@@ -13,7 +13,7 @@ import re
 import unicodedata
 from datetime import datetime, timezone
 
-SITE_BASE = "https://loupeirrot.github.io/swelleo"   # ← deviendra https://swelleo.com
+SITE_BASE = "https://swelleo.com"
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT_DIR = os.path.join(HERE, "spots")
 

@@ -46,8 +46,11 @@ def _get_json(url, params, label="API", headers=None):
 def fetch_marine(lat, lon):
     return _get_json("https://marine-api.open-meteo.com/v1/marine", {
         "latitude": lat, "longitude": lon,
+        # sea_level_height_msl est demandé ICI (et non dans un appel séparé, qui
+        # timeoutait souvent en CI et forçait un repli par projection qui dérive).
         "hourly": "wave_height,wave_period,wave_direction,"
-                  "swell_wave_height,swell_wave_period,swell_wave_direction",
+                  "swell_wave_height,swell_wave_period,swell_wave_direction,"
+                  "sea_level_height_msl",
         "timezone": "Europe/Paris",
         "forecast_days": FORECAST_DAYS,
     }, label="marine")
@@ -120,7 +123,8 @@ def analyze_spot(spot_cfg):
             "daytime": is_daytime,
         })
 
-    return hours
+    # on renvoie aussi la hauteur d'eau : elle sert à déduire les marées de la région
+    return hours, (times, marine["hourly"].get("sea_level_height_msl") or [])
 
 
 # ──────────────────────────────────────────
@@ -194,8 +198,12 @@ def project_tides(prev_extremes):
     if not prev_extremes:
         return []
     exs = sorted(prev_extremes, key=lambda e: e["time"])
-    t = normalize_dt(exs[-1]["time"])
-    typ = exs[-1]["type"]
+    # on s'ancre sur le dernier extremum MESURÉ : projeter depuis une projection
+    # ferait s'accumuler la dérive à chaque run en repli.
+    measured = [e for e in exs if not e.get("est")]
+    anchor = (measured or exs)[-1]
+    t = normalize_dt(anchor["time"])
+    typ = anchor["type"]
     start = datetime.now(TZ) - timedelta(hours=6)
     horizon = datetime.now(TZ) + timedelta(days=FORECAST_DAYS)
     while t > start:                      # recule l'ancre avant le début de la fenêtre
@@ -238,13 +246,23 @@ def check_timezones(output):
     print("  ✔︎ fuseaux horaires validés (heure légale de Paris)")
 
 
-def fetch_tides_by_region(prev_tides=None):
-    """Une série de marées par région, au barycentre des spots de la région."""
+def fetch_tides_by_region(prev_tides=None, sea_by_region=None):
+    """Une série de marées par région.
+    1) hauteur d'eau déjà récupérée avec les vagues (fiable, aucun appel en plus)
+    2) sinon appel dédié au barycentre de la région
+    3) sinon projection par cycle depuis la dernière donnée connue (marquée « est »)."""
+    sea_by_region = sea_by_region or {}
     regions = {}
     for cfg in SPOTS.values():
         regions.setdefault(cfg["region"], []).append((cfg["lat"], cfg["lon"]))
     tides = {}
     for region, pts in regions.items():
+        if region in sea_by_region:
+            times, h = sea_by_region[region]
+            ex = compute_extremes(times, h)
+            if ex:
+                tides[region] = ex
+                continue
         lat = sum(p[0] for p in pts) / len(pts)
         lon = sum(p[1] for p in pts) / len(pts)
         try:
@@ -321,11 +339,15 @@ def main():
     if not isinstance(prev_tides, dict):
         prev_tides = {}
     spots_data = []
+    sea_by_region = {}   # hauteur d'eau récupérée avec les vagues → marées sans appel séparé
 
     for spot_name, spot_cfg in SPOTS.items():
         print(f"  → {spot_name}")
         try:
-            hours = analyze_spot(spot_cfg)
+            hours, sea = analyze_spot(spot_cfg)
+            region = spot_cfg["region"]
+            if region not in sea_by_region and sea[1] and any(v is not None for v in sea[1]):
+                sea_by_region[region] = sea
             spots_data.append({
                 "name": spot_name,
                 "region": spot_cfg["region"],
@@ -347,7 +369,7 @@ def main():
                 print(f"  ❌ Erreur sur {spot_name}: {e}")
 
     try:
-        tides = fetch_tides_by_region(prev_tides)
+        tides = fetch_tides_by_region(prev_tides, sea_by_region)
         total = sum(len(v) for v in tides.values())
         print(f"  → marées : {total} extrema sur {len(tides)} régions")
     except Exception as e:

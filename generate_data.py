@@ -176,6 +176,16 @@ def load_previous():
 
 
 TIDE_HALF = timedelta(hours=6, minutes=12, seconds=37)  # demi-cycle de marée (~12h25 complet)
+VALID_OFFSETS = {timedelta(hours=1), timedelta(hours=2)}   # Europe/Paris : hiver / été
+
+
+def normalize_dt(ts):
+    """Répare un horodatage hérité du bug LMT (+00:09) : l'heure murale était la bonne,
+    seul l'offset était faux → on la réinterprète en heure légale de Paris."""
+    dt = datetime.fromisoformat(ts)
+    if dt.utcoffset() not in VALID_OFFSETS:
+        dt = dt.replace(tzinfo=TZ)
+    return dt
 
 
 def project_tides(prev_extremes):
@@ -184,7 +194,7 @@ def project_tides(prev_extremes):
     if not prev_extremes:
         return []
     exs = sorted(prev_extremes, key=lambda e: e["time"])
-    t = datetime.fromisoformat(exs[-1]["time"])
+    t = normalize_dt(exs[-1]["time"])
     typ = exs[-1]["type"]
     start = datetime.now(TZ) - timedelta(hours=6)
     horizon = datetime.now(TZ) + timedelta(days=FORECAST_DAYS)
@@ -198,9 +208,6 @@ def project_tides(prev_extremes):
         t += TIDE_HALF
         typ = "basse" if typ == "haute" else "haute"
     return out
-
-
-VALID_OFFSETS = {timedelta(hours=1), timedelta(hours=2)}   # Europe/Paris : hiver / été
 
 
 def check_timezones(output):
@@ -331,7 +338,10 @@ def main():
             })
         except Exception as e:
             if spot_name in prev_spots:
-                spots_data.append(prev_spots[spot_name])
+                prev_spot = prev_spots[spot_name]
+                for h in prev_spot.get("hours", []):      # répare un éventuel offset hérité (LMT)
+                    h["time"] = normalize_dt(h["time"]).isoformat()
+                spots_data.append(prev_spot)
                 print(f"  ↩︎ {spot_name} : dernière donnée connue réutilisée ({e})")
             else:
                 print(f"  ❌ Erreur sur {spot_name}: {e}")

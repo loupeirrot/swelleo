@@ -200,6 +200,37 @@ def project_tides(prev_extremes):
     return out
 
 
+VALID_OFFSETS = {timedelta(hours=1), timedelta(hours=2)}   # Europe/Paris : hiver / été
+
+
+def check_timezones(output):
+    """Garde-fou : tout horodatage doit porter l'heure légale de Paris (+01:00/+02:00).
+    Un offset aberrant (ex. +00:09 = LMT, bug pytz) décalerait marées et créneaux."""
+    bad = []
+    def check(label, ts):
+        try:
+            off = datetime.fromisoformat(ts).utcoffset()
+        except Exception:
+            bad.append((label, ts)); return
+        if off not in VALID_OFFSETS:
+            bad.append((label, ts))
+
+    check("generated_at", output["generated_at"])
+    for region, exs in (output.get("tides") or {}).items():
+        for e in exs[:4]:
+            check(f"marée {region}", e["time"])
+    for s in (output.get("spots") or [])[:3]:
+        for h in s.get("hours", [])[:2]:
+            check(f"heure {s['name']}", h["time"])
+
+    if bad:
+        for label, ts in bad[:5]:
+            print(f"  ❌ fuseau invalide — {label} : {ts}")
+        raise SystemExit("❌ Horodatages au mauvais fuseau : data.json NON écrit "
+                         "(attendu +01:00 ou +02:00 pour Europe/Paris).")
+    print("  ✔︎ fuseaux horaires validés (heure légale de Paris)")
+
+
 def fetch_tides_by_region(prev_tides=None):
     """Une série de marées par région, au barycentre des spots de la région."""
     regions = {}
@@ -328,6 +359,8 @@ def main():
         "buoys": buoys,
         "spots": spots_data,
     }
+
+    check_timezones(output)
 
     with open("data.json", "w", encoding="utf-8") as f:
         json.dump(output, f, ensure_ascii=False, indent=2)

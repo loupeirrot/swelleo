@@ -9,7 +9,8 @@ import re
 import unicodedata
 import requests
 from datetime import datetime, timedelta
-import pytz
+import pytz  # noqa: F401 (conservé pour compat éventuelle des dépendances)
+from zoneinfo import ZoneInfo
 from astral import LocationInfo
 from astral.sun import sun
 
@@ -151,7 +152,10 @@ SPOTS = {
     },
 }
 
-TZ = pytz.timezone("Europe/Paris")
+# ZoneInfo (et non pytz) : avec pytz, `.replace(tzinfo=TZ)` colle le LMT (+00:09 à Paris)
+# au lieu de l'heure légale (+01:00/+02:00) — décalage de 1h51 sur marées et créneaux.
+# Avec ZoneInfo, `.replace(tzinfo=TZ)` applique le bon offset (heure d'été comprise).
+TZ = ZoneInfo("Europe/Paris")
 
 # ──────────────────────────────────────────
 # FETCH DATA

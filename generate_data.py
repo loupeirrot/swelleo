@@ -143,10 +143,21 @@ def fetch_sea_level(lat, lon):
     return j["hourly"]["time"], j["hourly"]["sea_level_height_msl"]
 
 
-# Calage fin par région, en minutes (le modèle donne un point de grille au large ;
-# une référence portuaire type SHOM peut être décalée de quelques dizaines de minutes).
-# Ex. {"Landes": 40} avance/retarde toutes les marées des Landes de 40 min.
-TIDE_OFFSET_MIN = {}
+# Calage fin par région, en minutes : le modèle donne un point de grille au large,
+# alors que le SHOM publie des horaires référencés à un port → décalage systématique.
+#
+# Landes : MESURÉ contre le SHOM à Capbreton (17/08/2026)
+#   haute  swelleo 20h08 / SHOM 20h40  → +32 min
+#   basse  swelleo 02h08 / SHOM 02h46  → +38 min   ⇒ +35 min retenu
+# Autres régions : même cause physique, valeur EXTRAPOLÉE tant qu'aucun relevé
+# SHOM local n'a été fait. Pour affiner : comparer une pleine mer et ajuster ici.
+TIDE_OFFSET_MIN = {
+    "Landes": 35,        # mesuré (Capbreton)
+    "Pays Basque": 35,   # à vérifier (réf. Saint-Jean-de-Luz / Socoa)
+    "Gironde": 35,       # à vérifier (réf. Arcachon / Lacanau)
+    "Vendée": 35,        # à vérifier (réf. Les Sables-d'Olonne)
+    "Finistère": 35,     # à vérifier (réf. Le Guilvinec / Camaret)
+}
 
 
 def compute_extremes(times, h, step_min=15, offset_min=0):

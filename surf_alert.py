@@ -40,8 +40,8 @@ _load_env_file()
 # Secrets lus depuis l'environnement / le fichier .env — jamais en dur dans le code.
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
 CHAT_ID = os.environ.get("CHAT_ID", "")
-ALERT_THRESHOLD = 7.5      # En dessous : silence total (≥6.5 = GO, 7.5 = forte session)
-ALERT_FIRE     = 8.5       # Score "grosse session" sur spots prioritaires (notif sonore)
+ALERT_THRESHOLD = 6.5      # = seuil GO de l'app : on alerte dès qu'un spot est GO (cohérence)
+ALERT_FIRE     = 7.5       # Score "grosse session" sur spots prioritaires (notif sonore)
 FORECAST_HOURS = 120       # Fenêtre d'analyse (5 jours)
 SITE_URL       = "https://swelleo.com"
 # Régions à surveiller pour l'alerte perso (None = toutes). Ex. ["Landes"] ou ["Landes","Pays Basque"].

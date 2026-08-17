@@ -13,6 +13,8 @@ import re
 import unicodedata
 from datetime import datetime, timezone
 
+from spot_guide import SPOT_GUIDE
+
 SITE_BASE = "https://swelleo.com"
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT_DIR = os.path.join(HERE, "spots")
@@ -311,7 +313,7 @@ def content_page(slug_, title, desc, h1, body_html, hero_img=None, hero_caption=
     return url, head(title, desc, url, "og", jsonld) + body
 
 
-def spot_page(spot, tides, buoys):
+def spot_page(spot, tides, buoys, siblings=()):
     name = clean_name(spot["name"])
     region = spot["region"]
     rslug = slugify(region)
@@ -335,7 +337,36 @@ def spot_page(spot, tides, buoys):
     tide_row = f'<div class="row"><span>Marée</span><span>{esc(tide)}</span></div>' if tide else ""
     webcam_btn = f'<a class="btn2" href="{esc(spot["webcam"])}" target="_blank" rel="noopener">📹 Webcam live</a>' if spot.get("webcam") else ""
 
-    info = SPOT_INFO.get(slugify(spot["name"]))
+    sl = slugify(spot["name"])
+    g = SPOT_GUIDE.get(sl)
+    guide_card = ""
+    faq = []
+    if g:
+        guide_card = f"""
+  <div class="card glass reveal">
+    <h2>Le spot en bref</h2>
+    <p class="about">{esc(g['intro'])}</p>
+    <h2 style="margin-top:18px">Quand ça marche vraiment</h2>
+    <p class="about">{esc(g['conditions'])}</p>
+    <h2 style="margin-top:18px">Pour quel niveau ?</h2>
+    <p class="about">{esc(g['niveau'])}</p>
+  </div>
+  <div class="card glass reveal">
+    <h2>Sécurité : les pièges du spot</h2>
+    <p class="about">{esc(g['dangers'])}</p>
+    <h2 style="margin-top:18px">Accès &amp; stationnement</h2>
+    <p class="about">{esc(g['acces'])}</p>
+    <h2 style="margin-top:18px">Le réflexe local</h2>
+    <p class="about">{esc(g['astuce'])}</p>
+  </div>"""
+        faq = [
+            (f"Quand surfer à {name} ?", g["conditions"]),
+            (f"{name} convient-il aux débutants ?", g["niveau"]),
+            (f"Quels sont les dangers à {name} ?", g["dangers"]),
+            (f"Où se garer pour surfer à {name} ?", g["acces"]),
+        ]
+
+    info = SPOT_INFO.get(sl)
     info_card = ""
     if info:
         sw, ti, lv, dg, ac = info
@@ -351,12 +382,27 @@ def spot_page(spot, tides, buoys):
     </div>
     <p class="about" style="margin-top:12px;font-size:0.82rem">Indications générales à affiner — jugez toujours les conditions sur place.</p>
   </div>"""
+    nb = [x for x in siblings if x[1] != sl][:4]
+    neighbours = ""
+    if nb:
+        links = "".join(f'<a class="btn2" style="margin:0 8px 8px 0" href="{SITE_BASE}/spots/{s2}/">{esc(n2)}</a>' for n2, s2 in nb)
+        neighbours = f"""
+  <div class="card glass reveal">
+    <h2>Autres spots en {esc(region)}</h2>
+    <div style="margin-top:12px;display:flex;flex-wrap:wrap">{links}</div>
+  </div>"""
+
     url = f"{SITE_BASE}/spots/{slugify(spot['name'])}/"
     title = f"Surf {name} — prévision & conditions | swelleo"
     desc = f"Verdict {vword} pour {name} ({region}) : {wave}, vent {wind}. Prévision, marée et webcam en direct sur swelleo."
-    jsonld = json.dumps({"@context": "https://schema.org", "@type": "WebPage", "name": title, "description": desc, "url": url,
-                         "about": {"@type": "Place", "name": name,
-                                   "geo": {"@type": "GeoCoordinates", "latitude": spot.get("lat"), "longitude": spot.get("lon")}}}, ensure_ascii=False)
+    graph = [{"@type": "WebPage", "name": title, "description": desc, "url": url,
+              "about": {"@type": "Place", "name": name,
+                        "geo": {"@type": "GeoCoordinates", "latitude": spot.get("lat"), "longitude": spot.get("lon")}}}]
+    if faq:
+        graph.append({"@type": "FAQPage", "mainEntity": [
+            {"@type": "Question", "name": q,
+             "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in faq]})
+    jsonld = json.dumps({"@context": "https://schema.org", "@graph": graph}, ensure_ascii=False)
 
     html = head(title, desc, url, photo, jsonld) + f"""
   <div class="crumb"><a href="{SITE_BASE}/">Accueil</a> · <a href="{SITE_BASE}/regions/{rslug}/">{esc(region)}</a></div>
@@ -384,7 +430,7 @@ def spot_page(spot, tides, buoys):
     {webcam_btn}
     <button class="btn2" data-share="{url}" data-title="Surf {esc(name)} — swelleo">Partager</button>
   </div>
-  {info_card}
+  {info_card}{guide_card}{neighbours}
   <div class="card glass reveal">
     <h2>À propos de ce spot</h2>
     <p class="about">Le verdict <strong style="color:{vcolor}">{vword}</strong> pour {esc(name)} est calculé à partir de la houle (hauteur, période, direction) et du vent, croisés avec l'orientation du spot. Ouvrez l'app pour le détail heure par heure et comparer avec les autres spots de <a href="{SITE_BASE}/regions/{rslug}/">{esc(region)}</a>.</p>
@@ -517,7 +563,9 @@ def build():
     urls = [f"{SITE_BASE}/"]
 
     for spot in data["spots"]:
-        url, html = spot_page(spot, tides, buoys)
+        sibs = [(clean_name(x["name"]), slugify(x["name"])) for x in data["spots"]
+                if x["region"] == spot["region"]]
+        url, html = spot_page(spot, tides, buoys, sibs)
         if not url:
             continue
         d = os.path.join(OUT_DIR, slugify(spot["name"]))

@@ -284,7 +284,7 @@ def build_footer(regions):
         </nav>
       </div>
       <div class="ft-bottom">
-        <span>© 2026 swelleo — créé par <a href="https://pibes.fr" target="_blank" rel="noopener">pibes.fr</a></span>
+        <span>© 2026 swelleo, créé par <a href="https://pibes.fr" target="_blank" rel="noopener">pibes.fr</a></span>
         <span class="ft-cred">Open-Meteo · Candhis / Cerema (Licence Ouverte) · gosurf.fr</span>
       </div>
     </div>
@@ -380,7 +380,7 @@ def spot_page(spot, tides, buoys, siblings=()):
       <div class="row"><span>Dangers</span><span>{esc(dg)}</span></div>
       <div class="row"><span>Accès</span><span>{esc(ac)}</span></div>
     </div>
-    <p class="about" style="margin-top:12px;font-size:0.82rem">Indications générales à affiner — jugez toujours les conditions sur place.</p>
+    <p class="about" style="margin-top:12px;font-size:0.82rem">Indications générales à affiner. Jugez toujours les conditions sur place.</p>
   </div>"""
     nb = [x for x in siblings if x[1] != sl][:4]
     neighbours = ""
@@ -393,7 +393,7 @@ def spot_page(spot, tides, buoys, siblings=()):
   </div>"""
 
     url = f"{SITE_BASE}/spots/{slugify(spot['name'])}/"
-    title = f"Surf {name} — prévision & conditions | swelleo"
+    title = f"Surf {name} : prévision et conditions | swelleo"
     desc = f"Verdict {vword} pour {name} ({region}) : {wave}, vent {wind}. Prévision, marée et webcam en direct sur swelleo."
     graph = [{"@type": "WebPage", "name": title, "description": desc, "url": url,
               "about": {"@type": "Place", "name": name,
@@ -416,7 +416,7 @@ def spot_page(spot, tides, buoys, siblings=()):
     </div>
   </section>
   <h1>Surf {esc(name)}</h1>
-  <p class="sub">Prévision, houle, marée et webcam — le verdict go/no-go pour {esc(name)} ({esc(region)}).</p>
+  <p class="sub">Prévision, houle, marée et webcam : le verdict go/no-go pour {esc(name)} ({esc(region)}).</p>
   <div class="card glass reveal">
     <div class="rows">
       <div class="row"><span>Houle</span><span>{esc(wave)}</span></div>
@@ -428,7 +428,7 @@ def spot_page(spot, tides, buoys, siblings=()):
   <div class="actions">
     <a class="cta" href="{SITE_BASE}/">Voir tous les spots →</a>
     {webcam_btn}
-    <button class="btn2" data-share="{url}" data-title="Surf {esc(name)} — swelleo">Partager</button>
+    <button class="btn2" data-share="{url}" data-title="Surf {esc(name)} sur swelleo">Partager</button>
   </div>
   {info_card}{guide_card}{neighbours}
   <div class="card glass reveal">
@@ -468,7 +468,7 @@ def region_page(region, spots, tides):
             f'<div class="sc-go">{vw} · voir la fiche →</div></a>')
 
     url = f"{SITE_BASE}/regions/{rslug}/"
-    title = f"Surf {region} — prévisions & spots | swelleo"
+    title = f"Surf {region} : prévisions et spots | swelleo"
     desc = f"Les {len(ranked)} spots de surf en {region} : verdict go/no-go, houle, vent et marées. Meilleur aujourd'hui : {best_name} ({best_score}/10)."
     jsonld = json.dumps({"@context": "https://schema.org", "@type": "CollectionPage", "name": title, "description": desc, "url": url}, ensure_ascii=False)
 
@@ -489,7 +489,7 @@ def region_page(region, spots, tides):
     {''.join(cards)}
   </div>
   <div class="actions"><a class="cta" href="{SITE_BASE}/">Voir tous les spots →</a>
-    <button class="btn2" data-share="{url}" data-title="Surf {esc(region)} — swelleo">Partager</button></div>
+    <button class="btn2" data-share="{url}" data-title="Surf {esc(region)} sur swelleo">Partager</button></div>
   <div class="card glass reveal">
     <h2>Surfer en {esc(region)}</h2>
     <p class="about">swelleo calcule pour chaque spot de {esc(region)} un verdict clair go/no-go à partir de la houle, du vent et de l'orientation du spot, avec marées et bouées en direct. De quoi savoir en un coup d'œil où aller surfer aujourd'hui.</p>
@@ -498,12 +498,12 @@ def region_page(region, spots, tides):
 
 
 CONTENT = {
-    "a-propos": ("À propos de swelleo — comment ça marche",
+    "a-propos": ("À propos de swelleo, comment ça marche",
                  "swelleo donne un verdict clair go/no-go pour savoir s'il faut aller surfer. Découvrez comment le score est calculé et d'où viennent les données.",
                  "À propos de swelleo",
-                 """<p class="about" style="font-size:1.05rem;color:var(--text)">Combien de fois on se lève à l'aube, on charge la planche, on roule jusqu'au spot… pour trouver la mer plate ou défoncée par le vent ? <strong>swelleo est né de cette frustration</strong> — et d'un hiver à chasser les vagues en Norvège, où savoir <em>quand</em> y aller changeait tout.</p>
+                 """<p class="about" style="font-size:1.05rem;color:var(--text)">Combien de fois on se lève à l'aube, on charge la planche, on roule jusqu'au spot… pour trouver la mer plate ou défoncée par le vent ? <strong>swelleo est né de cette frustration</strong>, et d'un hiver à chasser les vagues en Norvège, où savoir <em>quand</em> y aller changeait tout.</p>
 <h2 style="margin-top:20px">Le principe</h2>
-<p class="about">swelleo répond à une seule question : <strong style="color:var(--go)">faut-il aller surfer ?</strong> Pour chaque spot, un verdict clair — <strong style="color:#34e89e">GO</strong>, <strong style="color:#ffce6a">OK</strong> ou <strong style="color:#ff6b6b">FLAT</strong> — au lieu de tableaux de chiffres à déchiffrer.</p>
+<p class="about">swelleo répond à une seule question : <strong style="color:var(--go)">faut-il aller surfer ?</strong> Pour chaque spot, un verdict clair : <strong style="color:#34e89e">GO</strong>, <strong style="color:#ffce6a">OK</strong> ou <strong style="color:#ff6b6b">FLAT</strong>, au lieu de tableaux de chiffres à déchiffrer.</p>
 <h2 style="margin-top:18px">Comment le score est calculé</h2>
 <p class="about">Une note sur 10 est calculée heure par heure à partir de la <strong>houle</strong> (hauteur, période, direction), du <strong>vent</strong> (force, direction, offshore/onshore) et de l'<strong>orientation du spot</strong>. ≥ 6,5 → GO · 4,5–6,5 → OK · &lt; 4,5 → FLAT. On affiche le meilleur créneau à venir, la marée et la bouée en direct.</p>
 <h2 style="margin-top:18px">Les données</h2>
@@ -511,8 +511,8 @@ CONTENT = {
     "mentions-legales": ("Mentions légales | swelleo",
                          "Mentions légales du site swelleo.",
                          "Mentions légales",
-                         """<p class="about"><strong>Éditeur :</strong> swelleo — projet personnel non commercial. Contact : <a href="mailto:contact@swelleo.com">contact@swelleo.com</a>.</p>
-<p class="about" style="margin-top:12px"><strong>Hébergement :</strong> GitHub Pages — GitHub, Inc., 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, USA.</p>
+                         """<p class="about"><strong>Éditeur :</strong> swelleo, projet personnel non commercial. Contact : <a href="mailto:contact@swelleo.com">contact@swelleo.com</a>.</p>
+<p class="about" style="margin-top:12px"><strong>Hébergement :</strong> GitHub Pages (GitHub, Inc.,, 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, USA).</p>
 <p class="about" style="margin-top:12px"><strong>Données :</strong> Open-Meteo (prévisions), Candhis / Cerema sous Licence Ouverte (bouées), webcams des partenaires cités. swelleo n'est pas responsable de l'exactitude des prévisions : restez prudents et jugez toujours les conditions sur place.</p>"""),
     "confidentialite": ("Confidentialité | swelleo",
                         "Politique de confidentialité de swelleo : aucune donnée personnelle collectée.",

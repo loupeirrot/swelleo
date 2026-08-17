@@ -512,6 +512,7 @@ function currentEntry() { const c = currentBest(); return c ? c.h : null; }
 function pickBanner(h) {
   if (!h) return 'golden';
   if (!h.daytime) return 'night';
+  if (h.wave_h < 0.8) return 'flat';           // mer plate : prime sur « messy »
   if (!h.offshore && h.score < 5) return 'messy';
   if (h.light >= 9 && h.score >= 6) return 'golden';
   if (h.score >= 8) return 'epic';
@@ -776,11 +777,11 @@ function tideTile(region) {
 }
 function mapHtml(spots) {
   const dots = spots.map(s => {
-    const w = spotBest(s); if (!w) return '';
-    const v = verdict(w.peak.score);
+    const nh = spotNowHour(s); if (!nh) return '';        // situation ACTUELLE (pas le meilleur créneau)
+    const v = verdict(nh.score);
     const x = ((s.lon - MAP.lonMin) * MAP.cosLat * MAP.scale).toFixed(1);
     const y = ((MAP.latMax - s.lat) * MAP.scale).toFixed(1);
-    return `<circle cx="${x}" cy="${y}" r="5.5" fill="${v.color}" stroke="rgba(6,13,24,0.85)" stroke-width="1.5" style="filter:drop-shadow(0 0 6px ${v.color})"><title>${s.name} · ${w.peak.score}/10</title></circle>`;
+    return `<circle cx="${x}" cy="${y}" r="5.5" fill="${v.color}" stroke="rgba(6,13,24,0.85)" stroke-width="1.5" style="filter:drop-shadow(0 0 6px ${v.color})"><title>${s.name} · maintenant ${nh.score}/10</title></circle>`;
   }).join('');
   const byReg = {};
   for (const s of spots) (byReg[s.region] = byReg[s.region] || []).push(s);
@@ -796,7 +797,7 @@ function mapHtml(spots) {
     const y = Math.max(r.y, prevY + 10); prevY = y;
     return `<text class="maplbl" x="${r.x.toFixed(1)}" y="${(y + 2.5).toFixed(1)}">${r.reg}</text>`;
   }).join('');
-  return `<div class="map-section"><div class="label">la carte des spots</div>
+  return `<div class="map-section"><div class="label">la carte des spots · maintenant</div>
     <div class="card glass map-card reveal">
       <svg viewBox="-8 88 166 212" class="france" role="img" aria-label="Carte des spots de surf sur la côte atlantique">
         <path d="${FR_PATH}" fill="rgba(52,232,158,0.05)" stroke="rgba(120,236,205,0.5)" stroke-width="1.3" stroke-linejoin="round" vector-effect="non-scaling-stroke" style="filter:drop-shadow(0 0 3px rgba(52,232,158,0.4))"/>${labels}${dots}</svg>

@@ -48,9 +48,10 @@ def fetch_marine(lat, lon):
         "latitude": lat, "longitude": lon,
         # sea_level_height_msl est demandé ICI (et non dans un appel séparé, qui
         # timeoutait souvent en CI et forçait un repli par projection qui dérive).
+        # En minutely_15 : 4× plus précis pour situer l'heure exacte des extrema.
         "hourly": "wave_height,wave_period,wave_direction,"
-                  "swell_wave_height,swell_wave_period,swell_wave_direction,"
-                  "sea_level_height_msl",
+                  "swell_wave_height,swell_wave_period,swell_wave_direction",
+        "minutely_15": "sea_level_height_msl",
         "timezone": "Europe/Paris",
         "forecast_days": FORECAST_DAYS,
     }, label="marine")
@@ -123,8 +124,9 @@ def analyze_spot(spot_cfg):
             "daytime": is_daytime,
         })
 
-    # on renvoie aussi la hauteur d'eau : elle sert à déduire les marées de la région
-    return hours, (times, marine["hourly"].get("sea_level_height_msl") or [])
+    # on renvoie aussi la hauteur d'eau (pas de 15 min) : elle sert aux marées de la région
+    m15 = marine.get("minutely_15") or {}
+    return hours, (m15.get("time") or [], m15.get("sea_level_height_msl") or [])
 
 
 # ──────────────────────────────────────────
@@ -141,7 +143,13 @@ def fetch_sea_level(lat, lon):
     return j["hourly"]["time"], j["hourly"]["sea_level_height_msl"]
 
 
-def compute_extremes(times, h):
+# Calage fin par région, en minutes (le modèle donne un point de grille au large ;
+# une référence portuaire type SHOM peut être décalée de quelques dizaines de minutes).
+# Ex. {"Landes": 40} avance/retarde toutes les marées des Landes de 40 min.
+TIDE_OFFSET_MIN = {}
+
+
+def compute_extremes(times, h, step_min=15, offset_min=0):
     extremes = []
     for i in range(1, len(h) - 1):
         a, b, c = h[i - 1], h[i], h[i + 1]
@@ -156,7 +164,7 @@ def compute_extremes(times, h):
         offset = 0.5 * (a - c) / denom if denom != 0 else 0.0
         offset = max(-0.5, min(0.5, offset))
         peak_time = (datetime.fromisoformat(times[i]).replace(tzinfo=TZ)
-                     + timedelta(minutes=round(offset * 60)))
+                     + timedelta(minutes=round(offset * step_min) + offset_min))
         extremes.append({
             "time": peak_time.isoformat(),
             "type": "haute" if is_high else "basse",
@@ -259,7 +267,7 @@ def fetch_tides_by_region(prev_tides=None, sea_by_region=None):
     for region, pts in regions.items():
         if region in sea_by_region:
             times, h = sea_by_region[region]
-            ex = compute_extremes(times, h)
+            ex = compute_extremes(times, h, 15, TIDE_OFFSET_MIN.get(region, 0))
             if ex:
                 tides[region] = ex
                 continue
@@ -267,7 +275,7 @@ def fetch_tides_by_region(prev_tides=None, sea_by_region=None):
         lon = sum(p[1] for p in pts) / len(pts)
         try:
             times, h = fetch_sea_level(lat, lon)
-            tides[region] = compute_extremes(times, h)
+            tides[region] = compute_extremes(times, h, 60, TIDE_OFFSET_MIN.get(region, 0))
         except Exception as e:
             if prev_tides and prev_tides.get(region):
                 tides[region] = project_tides(prev_tides[region])

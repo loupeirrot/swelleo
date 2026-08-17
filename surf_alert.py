@@ -166,7 +166,7 @@ def fetch_marine(lat, lon):
         "hourly": "wave_height,wave_period,wave_direction,"
                   "swell_wave_height,swell_wave_period,swell_wave_direction",
         "timezone": "Europe/Paris",
-        "forecast_days": 3,
+        "forecast_days": 5,   # aligné sur FORECAST_HOURS=120 (l'alerte doit voir 5 jours)
     }, timeout=10)
     r.raise_for_status()
     return r.json()
@@ -176,7 +176,7 @@ def fetch_weather(lat, lon):
         "latitude": lat, "longitude": lon,
         "hourly": "wind_speed_10m,wind_direction_10m,weather_code,cloud_cover",
         "timezone": "Europe/Paris",
-        "forecast_days": 3,
+        "forecast_days": 5,   # aligné sur FORECAST_HOURS=120 (l'alerte doit voir 5 jours)
         "wind_speed_unit": "kmh",
     }, timeout=10)
     r.raise_for_status()

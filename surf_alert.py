@@ -46,6 +46,9 @@ FORECAST_HOURS = 120       # Fenêtre d'analyse (5 jours)
 SITE_URL       = "https://swelleo.com"
 # Régions à surveiller pour l'alerte perso (None = toutes). Ex. ["Landes"] ou ["Landes","Pays Basque"].
 ALERT_REGIONS  = ["Landes"]
+# Créneau réellement surfable : personne ne se met à l'eau à 23h. Bornes humaines,
+# recoupées avec la lumière du jour (lever/coucher) pour rester juste en hiver.
+ALERT_HOURS    = (7, 21)
 
 # Chaque spot a ses paramètres propres :
 #   region     : pour regrouper les spots dans l'appli
@@ -279,10 +282,7 @@ def analyze_spot(spot_name, spot_cfg):
     weather = fetch_weather(lat, lon)
 
     now = datetime.now(TZ)
-    today = now.date()
-    sunrise, sunset = get_sun_times(lat, lon, today)
-    sr_h = sunrise.hour + sunrise.minute / 60
-    ss_h = sunset.hour + sunset.minute / 60
+    sun_cache = {}   # lever/coucher recalculés par date : sur 5 jours, ça se décale
 
     times   = marine["hourly"]["time"]
     results = []
@@ -294,6 +294,18 @@ def analyze_spot(spot_name, spot_cfg):
         if (dt - now).total_seconds() > FORECAST_HOURS * 3600:
             break
 
+        d = dt.date()
+        if d not in sun_cache:
+            sr, ss = get_sun_times(lat, lon, d)
+            sun_cache[d] = (sr.hour + sr.minute / 60, ss.hour + ss.minute / 60)
+        sr_h, ss_h = sun_cache[d]
+
+        hour_dec = dt.hour + dt.minute / 60
+        if not (ALERT_HOURS[0] <= hour_dec <= ALERT_HOURS[1]):
+            continue                      # hors créneau humain (nuit, trop tôt, trop tard)
+        if not (sr_h - 0.5 <= hour_dec <= ss_h + 0.5):
+            continue                      # il fait nuit à cette heure-là (hiver)
+
         wave_h    = marine["hourly"]["wave_height"][i]    or 0
         wave_p    = marine["hourly"]["wave_period"][i]    or 0
         swell_dir = marine["hourly"]["swell_wave_direction"][i] or 0
@@ -301,7 +313,6 @@ def analyze_spot(spot_name, spot_cfg):
         wind_dir  = weather["hourly"]["wind_direction_10m"][i] or 0
         cloud     = weather["hourly"]["cloud_cover"][i]   or 0
 
-        hour_dec = dt.hour + dt.minute / 60
         score, breakdown = compute_score(
             wave_h, wave_p, swell_dir,
             wind_spd, wind_dir,

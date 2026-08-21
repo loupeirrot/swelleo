@@ -372,12 +372,14 @@ def build_alert(spot_name, spot_cfg, results):
     now = datetime.now(TZ)
     delta = best["dt"] - now
     hours_away = delta.total_seconds() / 3600
-    days_away  = int(hours_away // 24)
+    # Écart en JOURS DE CALENDRIER, et non en heures écoulées : vue de midi, une
+    # session demain 7h est à 19 h d'écart, ce qui l'affichait « aujourd'hui à 07h ».
+    days_away  = (best["dt"].date() - now.date()).days
 
     if hours_away < 2:
         quand    = "maintenant"
         urgence  = ""
-    elif hours_away < 24:
+    elif days_away == 0:
         quand    = f"aujourd'hui à {best['dt'].strftime('%Hh')}"
         urgence  = f"  ⏱ dans {int(hours_away)}h"
     elif days_away == 1:

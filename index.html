@@ -394,17 +394,15 @@ let FAVS = JSON.parse(localStorage.getItem('surfalert_favs') || '[]');
 let NEAR = JSON.parse(localStorage.getItem('swelleo_near') || 'null');
 function setNear(v) { NEAR = v; if (v) localStorage.setItem('swelleo_near', JSON.stringify(v)); else localStorage.removeItem('swelleo_near'); }
 
+// Une seule échelle dans toute l'app : celle du verdict. Les dégradés ne servent
+// qu'à donner du relief, ils ne changent jamais de famille de couleur.
 function grad(s) {
-  if (s >= PRO) return 'linear-gradient(135deg,#ffb86c,#ff8a4c)';
-  if (s >= GO)  return 'linear-gradient(135deg,#5dffc0,#2bb4d8)';
-  if (s >= 6)   return 'linear-gradient(135deg,#ffe08a,#ffc24c)';
-  if (s >= 4)   return 'linear-gradient(135deg,#a9d4f2,#7fb4e6)';
-  return 'linear-gradient(135deg,#aaa2c8,#8f88ad)';
+  if (s >= PRO) return 'linear-gradient(135deg,#7dffd0,#22d68d)';  // GO d'exception
+  if (s >= 6.5) return 'linear-gradient(135deg,#5dffc0,#2bd48a)';  // GO
+  if (s >= 4.5) return 'linear-gradient(135deg,#ffe08a,#ffc24c)';  // OK
+  return 'linear-gradient(135deg,#ff9d9d,#ff6b6b)';                // FLAT
 }
-function solid(s) {
-  if (s >= PRO) return '#ff9a5c'; if (s >= GO) return '#34e89e';
-  if (s >= 6) return '#ffce6a'; if (s >= 4) return '#7fb4e6'; return '#9a93b8';
-}
+function solid(s) { return verdict(s).color; }
 function verdict(s) {
   if (s >= 6.5) return { label:'GO', color:'#34e89e' };
   if (s >= 4.5) return { label:'OK', color:'#ffce6a' };
@@ -830,11 +828,9 @@ function groupByDay(hours) { const d = {};
 function renderDetail() {
   const el = document.getElementById('detail');
   const legend = `<div class="legend">
-    <span><i class="dot" style="background:#9a93b8"></i>&lt;4</span>
-    <span><i class="dot" style="background:#7fb4e6"></i>4–6</span>
-    <span><i class="dot" style="background:#ffce6a"></i>6–7.5</span>
-    <span><i class="dot" style="background:var(--go)"></i>≥7.5</span>
-    <span><i class="dot" style="background:#ff9a5c"></i>≥8.5</span></div>`;
+    <span><i class="dot" style="background:#ff6b6b"></i>flat &lt; 4,5</span>
+    <span><i class="dot" style="background:#ffce6a"></i>ok 4,5–6,5</span>
+    <span><i class="dot" style="background:#34e89e"></i>go ≥ 6,5</span></div>`;
   el.innerHTML = legend + activeSpots().map(spot => {
     const fire = spot.priority === 'fire' ? '<span class="badge-fire">fire</span>' : '';
     const days = groupByDay(spot.hours);

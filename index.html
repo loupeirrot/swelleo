@@ -232,7 +232,6 @@
     align-items:center; justify-content:center; font-size:0.6rem; color:rgba(6,16,12,0.9); position:relative;
     box-shadow:inset 0 1px 0 rgba(255,255,255,0.25); }
   .cell .h { font-size:0.5rem; opacity:0.7; } .cell .sc { font-family:var(--head); font-weight:700; font-size:0.72rem; }
-  .cell.night { opacity:0.5; box-shadow:none; }   /* hors lumière : estompé, mais coloré et noté */
   .tide-strip { display:block; width:100%; height:27px; margin-top:3px; }
   .cell:hover::after { content:attr(data-tip); position:absolute; bottom:116%; left:50%; transform:translateX(-50%);
     background:rgba(6,13,24,0.96); backdrop-filter:blur(10px); border:1px solid var(--stroke); color:#fff;
@@ -873,8 +872,7 @@ function renderDetail() {
   const legend = `<div class="legend">
     <span><i class="dot" style="background:#ff6b6b"></i>flat &lt; 4,5</span>
     <span><i class="dot" style="background:#ffce6a"></i>ok 4,5–6,5</span>
-    <span><i class="dot" style="background:#34e89e"></i>go ≥ 6,5</span>
-    <span class="lg-dim"><i class="dot" style="background:#ff6b6b;opacity:0.5"></i>estompé = il fait nuit</span></div>`;
+    <span><i class="dot" style="background:#34e89e"></i>go ≥ 6,5</span></div>`;
   el.innerHTML = legend + activeSpots().map(spot => {
     const fire = spot.priority === 'fire' ? '<span class="badge-fire">fire</span>' : '';
     const days = groupByDay(spot.hours);
@@ -887,11 +885,9 @@ function renderDetail() {
         // couleur du score dans tous les cas : un fond gris faisait passer les heures
         // avant le lever du soleil pour des cases cassées. L'estompage suffit à les distinguer.
         const bg = grad(h.score);
-        const cls = h.daytime ? '' : 'night';
-        const nuit = h.daytime ? '' : (hr < 12 ? '\n🌙 avant le lever du soleil' : '\n🌙 après le coucher du soleil');
-        const tip = `${hr}h · ${h.score}/10\n${h.wave_h}m ${h.wave_p}s ${h.swell_label}\n💨 ${h.wind_spd}km/h ${h.wind_label} ${h.offshore?'offshore':'onshore'}\n☁️ ${h.cloud}%${nuit}`;
+        const tip = `${hr}h · ${h.score}/10\n${h.wave_h}m ${h.wave_p}s ${h.swell_label}\n💨 ${h.wind_spd}km/h ${h.wind_label} ${h.offshore?'offshore':'onshore'}\n☁️ ${h.cloud}%`;
         // toute case porte sa note ; celles hors lumière sont simplement estompées
-        return `<div class="cell ${cls}" style="background:${bg}" data-tip="${tip}"><span class="h">${hr}h</span><span class="sc">${h.score}</span></div>`;
+        return `<div class="cell" style="background:${bg}" data-tip="${tip}"><span class="h">${hr}h</span><span class="sc">${h.score}</span></div>`;
       }).join('');
       return `<div class="day"><div class="day-label">${whenLabel(key, DATA.jours_fr)}</div><div class="timeline">${cells}</div>${tideStrip(spot.region, key, 7, 21)}</div>`;
     }).join('');

@@ -232,7 +232,7 @@
     align-items:center; justify-content:center; font-size:0.6rem; color:rgba(6,16,12,0.9); position:relative;
     box-shadow:inset 0 1px 0 rgba(255,255,255,0.25); }
   .cell .h { font-size:0.5rem; opacity:0.7; } .cell .sc { font-family:var(--head); font-weight:700; font-size:0.72rem; }
-  .cell.night { opacity:0.42; box-shadow:none; }  /* hors lumière : estompé, mais noté */
+  .cell.night { opacity:0.5; box-shadow:none; }   /* hors lumière : estompé, mais coloré et noté */
   .tide-strip { display:block; width:100%; height:27px; margin-top:3px; }
   .cell:hover::after { content:attr(data-tip); position:absolute; bottom:116%; left:50%; transform:translateX(-50%);
     background:rgba(6,13,24,0.96); backdrop-filter:blur(10px); border:1px solid var(--stroke); color:#fff;
@@ -883,7 +883,9 @@ function renderDetail() {
       const slot = days[key].filter(h => { const hr = new Date(h.time).getHours(); return hr >= 7 && hr <= 21; });
       const cells = slot.map(h => {
         const hr = new Date(h.time).getHours();
-        const bg = h.daytime ? grad(h.score) : 'rgba(255,255,255,0.06)';
+        // couleur du score dans tous les cas : un fond gris faisait passer les heures
+        // avant le lever du soleil pour des cases cassées. L'estompage suffit à les distinguer.
+        const bg = grad(h.score);
         const cls = h.daytime ? '' : 'night';
         const tip = `${hr}h · ${h.score}/10\n${h.wave_h}m ${h.wave_p}s ${h.swell_label}\n💨 ${h.wind_spd}km/h ${h.wind_label} ${h.offshore?'offshore':'onshore'}\n☁️ ${h.cloud}%`;
         // toute case porte sa note ; celles hors lumière sont simplement estompées

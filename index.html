@@ -232,7 +232,8 @@
     align-items:center; justify-content:center; font-size:0.6rem; color:rgba(6,16,12,0.9); position:relative;
     box-shadow:inset 0 1px 0 rgba(255,255,255,0.25); }
   .cell .h { font-size:0.5rem; opacity:0.7; } .cell .sc { font-family:var(--head); font-weight:700; font-size:0.72rem; }
-  .cell.night { opacity:0.3; box-shadow:none; }   /* visible : sinon la ligne paraît trouée */
+  .cell.night { opacity:0.42; box-shadow:none; }  /* hors lumière : estompé, mais noté */
+  .tide-strip { display:block; width:100%; height:27px; margin-top:3px; }
   .cell:hover::after { content:attr(data-tip); position:absolute; bottom:116%; left:50%; transform:translateX(-50%);
     background:rgba(6,13,24,0.96); backdrop-filter:blur(10px); border:1px solid var(--stroke); color:#fff;
     padding:9px 12px; border-radius:12px; font-size:0.7rem; white-space:pre; z-index:10; pointer-events:none; }
@@ -825,6 +826,48 @@ function renderSummary() {
 }
 function groupByDay(hours) { const d = {};
   for (const h of hours) (d[h.time.slice(0,10)] = d[h.time.slice(0,10)] || []).push(h); return d; }
+// Niveau de marée (0 = basse, 1 = haute) interpolé en cosinus entre deux extrema.
+function tideLevel(ex, t) {
+  if (!ex.length) return null;
+  if (t <= ex[0].t) return ex[0].high ? 1 : 0;
+  for (let i = 0; i < ex.length - 1; i++) {
+    if (t <= ex[i + 1].t) {
+      const f = (t - ex[i].t) / (ex[i + 1].t - ex[i].t);
+      const e = (1 - Math.cos(Math.PI * f)) / 2;
+      const a = ex[i].high ? 1 : 0, b = ex[i + 1].high ? 1 : 0;
+      return a + (b - a) * e;
+    }
+  }
+  return ex[ex.length - 1].high ? 1 : 0;
+}
+// Courbe de marée sous la timeline, calée sur le centre des mêmes colonnes horaires.
+function tideStrip(region, dayKey, startH, endH) {
+  const ex = (TIDES[region] || [])
+    .map(e => ({ t: new Date(e.time).getTime(), high: e.type === 'haute' }))
+    .sort((a, b) => a.t - b.t);
+  if (ex.length < 2) return '';
+  const n = endH - startH + 1, W = 300, H = 24, base = new Date(dayKey + 'T00:00:00').getTime();
+  const xAt = frac => ((frac * (n - 1)) + 0.5) / n * W;
+  const yAt = lv => H - 4 - lv * (H - 9);
+  let d = '';
+  for (let i = 0; i <= 72; i++) {
+    const frac = i / 72;
+    const lv = tideLevel(ex, base + (startH + frac * (endH - startH)) * 3600000);
+    d += (i ? ' L ' : 'M ') + xAt(frac).toFixed(1) + ' ' + yAt(lv).toFixed(1);
+  }
+  // pastilles sur les pleines/basses mers tombant dans la fenêtre affichée
+  const marks = ex.filter(e => {
+    const h = (e.t - base) / 3600000;
+    return h >= startH && h <= endH;
+  }).map(e => {
+    const frac = ((e.t - base) / 3600000 - startH) / (endH - startH);
+    const hh = new Date(e.t);
+    return `<circle cx="${xAt(frac).toFixed(1)}" cy="${yAt(e.high ? 1 : 0).toFixed(1)}" r="3"
+      fill="${e.high ? '#34e89e' : '#7fb4e6'}"><title>${e.high ? 'pleine mer' : 'basse mer'} ${hh.getHours()}h${String(hh.getMinutes()).padStart(2,'0')}</title></circle>`;
+  }).join('');
+  return `<svg class="tide-strip" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-label="marée">
+    <path d="${d}" fill="none" stroke="rgba(52,232,158,0.62)" stroke-width="2.2" stroke-linecap="round"/>${marks}</svg>`;
+}
 function renderDetail() {
   const el = document.getElementById('detail');
   const legend = `<div class="legend">
@@ -835,17 +878,18 @@ function renderDetail() {
     const fire = spot.priority === 'fire' ? '<span class="badge-fire">fire</span>' : '';
     const days = groupByDay(spot.hours);
     const rows = Object.keys(days).sort().map(key => {
-      const slot = days[key].filter(h => { const hr = new Date(h.time).getHours(); return hr >= 6 && hr <= 21; });
+      // Fenêtre fixe 7h-21h : toutes les lignes ont exactement les mêmes colonnes,
+      // et chaque case porte une note (plus jamais de case vide).
+      const slot = days[key].filter(h => { const hr = new Date(h.time).getHours(); return hr >= 7 && hr <= 21; });
       const cells = slot.map(h => {
         const hr = new Date(h.time).getHours();
         const bg = h.daytime ? grad(h.score) : 'rgba(255,255,255,0.06)';
         const cls = h.daytime ? '' : 'night';
         const tip = `${hr}h · ${h.score}/10\n${h.wave_h}m ${h.wave_p}s ${h.swell_label}\n💨 ${h.wind_spd}km/h ${h.wind_label} ${h.offshore?'offshore':'onshore'}\n☁️ ${h.cloud}%`;
-        // toujours afficher la note d'une heure de jour, même basse ; hors lumière on
-        // garde la case (sans note) pour que toutes les lignes restent alignées.
-        return `<div class="cell ${cls}" style="background:${bg}" data-tip="${tip}"><span class="h">${hr}h</span><span class="sc">${h.daytime ? h.score : ''}</span></div>`;
+        // toute case porte sa note ; celles hors lumière sont simplement estompées
+        return `<div class="cell ${cls}" style="background:${bg}" data-tip="${tip}"><span class="h">${hr}h</span><span class="sc">${h.score}</span></div>`;
       }).join('');
-      return `<div class="day"><div class="day-label">${whenLabel(key, DATA.jours_fr)}</div><div class="timeline">${cells}</div></div>`;
+      return `<div class="day"><div class="day-label">${whenLabel(key, DATA.jours_fr)}</div><div class="timeline">${cells}</div>${tideStrip(spot.region, key, 7, 21)}</div>`;
     }).join('');
     return `<div class="card glass spot reveal"><div class="spot-head"><span class="spot-name">${spot.name}</span>${fire}</div>${rows}</div>`;
   }).join('');

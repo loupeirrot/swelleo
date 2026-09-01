@@ -873,7 +873,8 @@ function renderDetail() {
   const legend = `<div class="legend">
     <span><i class="dot" style="background:#ff6b6b"></i>flat &lt; 4,5</span>
     <span><i class="dot" style="background:#ffce6a"></i>ok 4,5–6,5</span>
-    <span><i class="dot" style="background:#34e89e"></i>go ≥ 6,5</span></div>`;
+    <span><i class="dot" style="background:#34e89e"></i>go ≥ 6,5</span>
+    <span class="lg-dim"><i class="dot" style="background:#ff6b6b;opacity:0.5"></i>estompé = il fait nuit</span></div>`;
   el.innerHTML = legend + activeSpots().map(spot => {
     const fire = spot.priority === 'fire' ? '<span class="badge-fire">fire</span>' : '';
     const days = groupByDay(spot.hours);
@@ -887,7 +888,8 @@ function renderDetail() {
         // avant le lever du soleil pour des cases cassées. L'estompage suffit à les distinguer.
         const bg = grad(h.score);
         const cls = h.daytime ? '' : 'night';
-        const tip = `${hr}h · ${h.score}/10\n${h.wave_h}m ${h.wave_p}s ${h.swell_label}\n💨 ${h.wind_spd}km/h ${h.wind_label} ${h.offshore?'offshore':'onshore'}\n☁️ ${h.cloud}%`;
+        const nuit = h.daytime ? '' : (hr < 12 ? '\n🌙 avant le lever du soleil' : '\n🌙 après le coucher du soleil');
+        const tip = `${hr}h · ${h.score}/10\n${h.wave_h}m ${h.wave_p}s ${h.swell_label}\n💨 ${h.wind_spd}km/h ${h.wind_label} ${h.offshore?'offshore':'onshore'}\n☁️ ${h.cloud}%${nuit}`;
         // toute case porte sa note ; celles hors lumière sont simplement estompées
         return `<div class="cell ${cls}" style="background:${bg}" data-tip="${tip}"><span class="h">${hr}h</span><span class="sc">${h.score}</span></div>`;
       }).join('');

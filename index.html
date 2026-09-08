@@ -236,6 +236,20 @@
   .cell:hover::after { content:attr(data-tip); position:absolute; bottom:116%; left:50%; transform:translateX(-50%);
     background:rgba(6,13,24,0.96); backdrop-filter:blur(10px); border:1px solid var(--stroke); color:#fff;
     padding:9px 12px; border-radius:12px; font-size:0.7rem; white-space:pre; z-index:10; pointer-events:none; }
+  .win-row { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:18px; }
+  .win-chip { flex:1 1 158px; min-width:0; position:relative; display:flex; flex-direction:column; gap:3px;
+    padding:13px 15px; border-radius:17px; border:1px solid var(--stroke); text-decoration:none; color:var(--text);
+    background:radial-gradient(120% 100% at 88% -20%,rgba(255,227,188,0.14),transparent 60%),rgba(17,29,46,0.6);
+    transition:transform .35s var(--ease), border-color .25s, box-shadow .35s var(--ease); }
+  .win-chip:hover { transform:translateY(-3px); border-color:color-mix(in srgb,var(--vc) 55%,transparent);
+    box-shadow:0 14px 34px rgba(2,8,18,0.5); }
+  .win-chip .wc-when { font-size:0.68rem; color:var(--dim); text-transform:capitalize; }
+  .win-chip .wc-line { display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
+  .win-chip .wc-h { font-family:var(--display); font-weight:700; font-size:1.12rem; letter-spacing:-0.01em; }
+  .win-chip .wc-sc { font-weight:700; font-size:0.95rem; color:var(--vc); }
+  .win-chip .wc-sp { font-size:0.71rem; color:var(--dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .win-chip .wc-best { position:absolute; top:11px; right:13px; font-size:0.55rem; letter-spacing:1px;
+    text-transform:uppercase; color:var(--vc); opacity:0.85; }
   .legend { display:flex; flex-wrap:wrap; gap:13px; justify-content:center; margin:14px 0; font-size:0.68rem; color:var(--dim); }
   .legend span { display:flex; align-items:center; gap:5px; }
   .dot { width:12px; height:12px; border-radius:4px; display:inline-block; }
@@ -553,9 +567,20 @@ function findWindows(hours, th) {
 }
 function bestHour(hours) { const d = hours.filter(h => h.daytime && isFuture(h));
   return d.length ? d.reduce((a,b) => b.score > a.score ? b : a) : null; }
+// Une session lointaine vaut moins qu'une session proche : on attend pour rien, et
+// surtout la prévision se dégrade avec l'échéance. 0,15/jour = 0,45 de décote à J+3,
+// donc un 7.0 demain passe devant un 7.1 jeudi.
+const WAIT_PENALTY = 0.15;
+function daysAway(t) {
+  const a = new Date(t), b = new Date();
+  const d0 = new Date(b.getFullYear(), b.getMonth(), b.getDate());
+  const d1 = new Date(a.getFullYear(), a.getMonth(), a.getDate());
+  return Math.max(0, Math.round((d1 - d0) / 86400000));
+}
+function effScore(win) { return win.peak.score - WAIT_PENALTY * daysAway(win.peak.time); }
 function spotBest(spot) {
   const wins = findWindows(spot.hours, 4);
-  if (wins.length) return wins.reduce((a, b) => b.peak.score > a.peak.score ? b : a);
+  if (wins.length) return wins.reduce((a, b) => effScore(b) > effScore(a) ? b : a);
   const h = bestHour(spot.hours);
   return h ? { start: h.time, end: h.time, peak: h } : null;
 }
@@ -802,11 +827,35 @@ function mapHtml(spots) {
       <div class="legend"><span><i class="dot" style="background:#34e89e"></i>go</span><span><i class="dot" style="background:#ffce6a"></i>ok</span><span><i class="dot" style="background:#ff6b6b"></i>flat</span></div>
     </div></div>`;
 }
+// Toutes les fenêtres GO à venir, dans l'ordre chronologique : la question du surfeur
+// est « quand est ma prochaine bonne session ? », pas « quel est le max sur 5 jours ? ».
+function upcomingWindows(limit) {
+  const out = [];
+  activeSpots().forEach(spot => findWindows(spot.hours, 6.5).forEach(win => out.push({ spot, win })));
+  out.sort((a, b) => new Date(a.win.peak.time) - new Date(b.win.peak.time));
+  return out.slice(0, limit || 4);
+}
+function windowsRow() {
+  const ws = upcomingWindows(4);
+  if (ws.length < 2) return '';                 // une seule fenêtre : la carte principale suffit
+  const topScore = Math.max(...ws.map(w => w.win.peak.score));
+  const chips = ws.map(({ spot, win }) => {
+    const p = win.peak, v = verdict(p.score);
+    const h1 = new Date(win.start).getHours(), h2 = new Date(win.end).getHours();
+    const range = h1 === h2 ? `${h1}h` : `${h1}h–${h2}h`;
+    const best = p.score === topScore ? `<span class="wc-best">meilleur</span>` : '';
+    return `<a class="win-chip" href="spots/${slug(spot.name)}/" style="--vc:${v.color}">${best}
+      <span class="wc-when">${whenLabel(p.time, DATA.jours_fr)}</span>
+      <span class="wc-line"><b class="wc-h">${range}</b><b class="wc-sc">${p.score}</b></span>
+      <span class="wc-sp">${spot.name}</span></a>`;
+  }).join('');
+  return `<div class="label">les prochaines sessions go</div><div class="win-row reveal">${chips}</div>`;
+}
 function renderSummary() {
   const el = document.getElementById('summary');
   const all = activeSpots().map(spot => ({ spot, win: spotBest(spot) })).filter(x => x.win);
   if (!all.length) { el.innerHTML = `<div class="card glass empty reveal in">😴 pas de prévision exploitable pour le moment.</div>`; return; }
-  all.sort((a, b) => b.win.peak.score - a.win.peak.score);
+  all.sort((a, b) => effScore(b.win) - effScore(a.win));
   const [top, ...rest] = all;
   el.innerHTML = `<div class="top-grid">
       <div class="top-left">
@@ -820,6 +869,7 @@ function renderSummary() {
       </div>
       ${mapHtml(DATA.spots)}
     </div>`
+    + windowsRow()
     + (rest.length ? `<div class="label">les autres spots</div><div class="bento">`
         + rest.map(({spot, win}) => spotCard(spot, win)).join('') + `</div>` : '');
 }

@@ -49,6 +49,8 @@ ALERT_REGIONS  = ["Landes"]
 # Créneau réellement surfable : personne ne se met à l'eau à 23h. Bornes humaines,
 # recoupées avec la lumière du jour (lever/coucher) pour rester juste en hiver.
 ALERT_HOURS    = (7, 21)
+# Décote par jour d'attente appliquée au choix du créneau annoncé (voir eff_score).
+WAIT_PENALTY   = 0.15
 
 # Chaque spot a ses paramètres propres :
 #   region     : pour regrouper les spots dans l'appli
@@ -349,12 +351,21 @@ def slug(name):
     s = unicodedata.normalize("NFKD", clean_name(name).lower()).encode("ascii", "ignore").decode()
     return re.sub(r"[^a-z0-9]+", "-", s).strip("-")
 
+def eff_score(r, now=None):
+    """Note pondérée par l'attente : une session lointaine vaut moins qu'une session
+    proche (on attend pour rien, et la prévision se dégrade avec l'échéance).
+    Sans ça, un 7.1 à J+3 était annoncé à la place d'un 7.0 le lendemain."""
+    now = now or datetime.now(TZ)
+    jours = max(0, (r["dt"].date() - now.date()).days)
+    return r["score"] - WAIT_PENALTY * jours
+
+
 def find_best_window(results):
-    """Trouve la meilleure fenêtre continue ≥ ALERT_THRESHOLD."""
+    """Trouve la meilleure fenêtre continue ≥ ALERT_THRESHOLD, à attente pondérée."""
     good = [r for r in results if r["score"] >= ALERT_THRESHOLD]
     if not good:
         return None, []
-    best = max(good, key=lambda x: x["score"])
+    best = max(good, key=eff_score)
     # Fenêtre de ±2h autour du pic
     window = [r for r in good
               if abs((r["dt"] - best["dt"]).total_seconds()) <= 7200]
@@ -454,8 +465,11 @@ def run():
             results = analyze_spot(spot_name, spot_cfg)
             msg, is_fire = build_alert(spot_name, spot_cfg, results)
             if msg:
-                best_score = max(r["score"] for r in results)
-                alerts.append((best_score, msg, is_fire, spot_name))
+                # rang = note pondérée par l'attente, affichage = note brute
+                bons = [r for r in results if r["score"] >= ALERT_THRESHOLD]
+                rang = max(eff_score(r) for r in bons) if bons else 0
+                best_score = max(r["score"] for r in bons or results)
+                alerts.append((rang, best_score, msg, is_fire, spot_name))
         except Exception as e:
             print(f"  ❌ Erreur sur {spot_name}: {e}")
 
@@ -465,14 +479,14 @@ def run():
         return
 
     # Trie par score décroissant → un seul message digest (le meilleur en détail + les autres en liste)
-    alerts.sort(reverse=True)
-    top_score, top_msg, top_fire, top_name = alerts[0]
+    alerts.sort(key=lambda a: a[0], reverse=True)
+    _rang, top_score, top_msg, top_fire, top_name = alerts[0]
     digest = top_msg
     if len(alerts) > 1:
         digest += "\n\n<b>Aussi go :</b>\n"
         digest += "\n".join(
             f"• {clean_name(name)} — {score}/10  (<a href=\"{SITE_URL}/spots/{slug(name)}/\">fiche</a>)"
-            for score, _msg, _fire, name in alerts[1:]
+            for _r, score, _msg, _fire, name in alerts[1:]
         )
     digest += f"\n\n🌊 <a href=\"{SITE_URL}/\">Tous les spots sur swelleo</a>"
     send(digest, disable_notification=not top_fire)

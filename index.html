@@ -830,20 +830,28 @@ function mapHtml(spots) {
 // Toutes les fenêtres GO à venir, dans l'ordre chronologique : la question du surfeur
 // est « quand est ma prochaine bonne session ? », pas « quel est le max sur 5 jours ? ».
 function upcomingWindows(limit) {
-  const out = [];
-  activeSpots().forEach(spot => findWindows(spot.hours, 6.5).forEach(win => out.push({ spot, win })));
-  out.sort((a, b) => new Date(a.win.peak.time) - new Date(b.win.peak.time));
-  return out.slice(0, limit || 4);
+  const all = [];
+  activeSpots().forEach(spot => findWindows(spot.hours, 6.5).forEach(win => all.push({ spot, win })));
+  // une seule entrée par journée (la meilleure, tous spots confondus) : l'intérêt de
+  // cette rangée est l'étalement dans le temps, pas de répéter les spots d'une même heure.
+  const parJour = {};
+  all.forEach(x => {
+    const k = String(x.win.peak.time).slice(0, 10);
+    if (!parJour[k] || x.win.peak.score > parJour[k].win.peak.score) parJour[k] = x;
+  });
+  return Object.keys(parJour).sort().map(k => parJour[k]).slice(0, limit || 4);
 }
 function windowsRow() {
   const ws = upcomingWindows(4);
   if (ws.length < 2) return '';                 // une seule fenêtre : la carte principale suffit
   const topScore = Math.max(...ws.map(w => w.win.peak.score));
+  let marque = false;
   const chips = ws.map(({ spot, win }) => {
     const p = win.peak, v = verdict(p.score);
     const h1 = new Date(win.start).getHours(), h2 = new Date(win.end).getHours();
     const range = h1 === h2 ? `${h1}h` : `${h1}h–${h2}h`;
-    const best = p.score === topScore ? `<span class="wc-best">meilleur</span>` : '';
+    const best = (!marque && p.score === topScore && (marque = true))
+      ? `<span class="wc-best">meilleur</span>` : '';
     return `<a class="win-chip" href="spots/${slug(spot.name)}/" style="--vc:${v.color}">${best}
       <span class="wc-when">${whenLabel(p.time, DATA.jours_fr)}</span>
       <span class="wc-line"><b class="wc-h">${range}</b><b class="wc-sc">${p.score}</b></span>

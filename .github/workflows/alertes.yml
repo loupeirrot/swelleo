@@ -1,10 +1,10 @@
 name: Alertes Telegram
 
-# Lance le script d'alerte 3×/jour, comme le cron local d'origine.
-# Heures en UTC (l'été à Paris = UTC+2) → ~6h, 12h, 18h heure de Paris.
+# Lance le script d'alerte 2×/jour.
+# Heures en UTC → 6h et 17h à Paris en hiver (UTC+1), 7h et 18h en été (UTC+2).
 on:
   schedule:
-    - cron: "0 4,10,16 * * *"
+    - cron: "0 5,16 * * *"
   workflow_dispatch:   # bouton manuel pour tester
 
 permissions:
@@ -30,3 +30,12 @@ jobs:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
         run: python surf_alert.py
+
+  # Empêche GitHub de désactiver le workflow après 60 jours sans commit.
+  # Réactive le workflow via l'API, sans créer de commit.
+  keepalive:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - uses: gautamkrishnar/keepalive-workflow@v2

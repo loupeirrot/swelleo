@@ -6,6 +6,7 @@ Analyse les conditions de surf et envoie des alertes Telegram.
 
 import os
 import re
+import time
 import unicodedata
 import requests
 from datetime import datetime, timedelta
@@ -440,13 +441,25 @@ def send(text, disable_notification=False):
         raise SystemExit("❌ TELEGRAM_TOKEN / CHAT_ID manquants. "
                          "Crée un fichier .env à côté du script (voir .env.example).")
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-    r = requests.post(url, json={
+    payload = {
         "chat_id": CHAT_ID,
         "text": text,
         "parse_mode": "HTML",
         "disable_notification": disable_notification,
-    }, timeout=10)
-    return r.json()
+    }
+    # Un simple timeout réseau faisait perdre l'alerte : le message était calculé,
+    # jamais remis, et le run passait en échec. On réessaie, comme pour Open-Meteo.
+    erreur = None
+    for essai in range(4):
+        try:
+            r = requests.post(url, json=payload, timeout=30)
+            r.raise_for_status()
+            return r.json()
+        except Exception as e:
+            erreur = e
+            print(f"  ⏳ Telegram : tentative {essai + 1}/4 ({e})")
+            time.sleep(4)
+    raise erreur
 
 # ──────────────────────────────────────────
 # MAIN

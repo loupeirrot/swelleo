@@ -30,12 +30,3 @@ jobs:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
         run: python surf_alert.py
-
-  # Empêche GitHub de désactiver le workflow après 60 jours sans commit.
-  # Réactive le workflow via l'API, sans créer de commit.
-  keepalive:
-    runs-on: ubuntu-latest
-    permissions:
-      actions: write
-    steps:
-      - uses: gautamkrishnar/keepalive-workflow@v2
